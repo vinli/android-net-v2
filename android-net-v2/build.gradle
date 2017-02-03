@@ -1,0 +1,164 @@
+def integrationPropertiesFile = rootProject.file("android-net-v2/integration.properties");
+def integrationProperties = new Properties();
+integrationProperties.load(new FileInputStream(integrationPropertiesFile));
+
+buildscript {
+
+  repositories {
+
+    mavenCentral()
+    jcenter()
+  }
+}
+
+group = project.property('vinli.groupId')
+version = project.property('vinli.version')
+
+apply plugin: 'com.android.library'
+apply from: file('../gradle/checkstyle.gradle')
+apply from: file('../gradle/javadoc.gradle')
+
+android {
+
+  compileSdkVersion 25
+  buildToolsVersion "25.0.2"
+
+  defaultConfig {
+
+    minSdkVersion 14
+    targetSdkVersion 25
+    versionCode 2
+    versionName "2.0"
+    testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+  }
+
+  buildTypes {
+
+    all {
+
+      buildConfigField("Integer", "BASE_MODEL_SERIALIZATION_VER", "1")
+      buildConfigField("Integer", "FIELDS_CACHE_SIZE", "10")
+      buildConfigField("Integer", "MAX_DISK_CACHE_PRUNES_PER_PASS", "3")
+      buildConfigField("Integer", "MAX_DISK_CACHE_LOCK_MAP_SIZE", "64")
+      buildConfigField("String", "DISK_CACHE_FILENAME_FORMAT", "\"CACHE_%s\"")
+    }
+
+    debug {
+
+      buildConfigField("String", "ACCESS_TOKEN",
+          "\"" + integrationProperties['ACCESS_TOKEN'] + "\"")
+
+      buildConfigField("String", "VEHICULARIZATION_ACCESS_TOKEN",
+          "\"" + integrationProperties['VEHICULARIZATION_ACCESS_TOKEN'] + "\"")
+
+      buildConfigField("String", "DEVICE_ID",
+          "\"" + integrationProperties['DEVICE_ID'] + "\"")
+
+      buildConfigField("String", "SUBSCRIPTION_ID",
+          "\"" + integrationProperties['SUBSCRIPTION_ID'] + "\"")
+
+      buildConfigField("String", "RULE_ID",
+          "\"" + integrationProperties['RULE_ID'] + "\"")
+
+      buildConfigField("String", "VEHICLE_RULE_ID",
+          "\"" + integrationProperties['VEHICLE_RULE_ID'] + "\"")
+
+      buildConfigField("String", "VEHICLE_ID",
+          "\"" + integrationProperties['VEHICLE_ID'] + "\"")
+
+      buildConfigField("String", "SECOND_VEHICLE_ID",
+          "\"" + integrationProperties['SECOND_VEHICLE_ID'] + "\"")
+
+      buildConfigField("String", "EVENT_ID",
+          "\"" + integrationProperties['EVENT_ID'] + "\"")
+
+      buildConfigField("String", "NOTIFICATION_ID",
+          "\"" + integrationProperties['NOTIFICATION_ID'] + "\"")
+
+      buildConfigField("String", "MESSAGE_ID",
+          "\"" + integrationProperties['MESSAGE_ID'] + "\"")
+
+      buildConfigField("String", "TRIP_ID",
+          "\"" + integrationProperties['TRIP_ID'] + "\"")
+
+      buildConfigField("String", "DUMMY_ID",
+          "\"" + integrationProperties['DUMMY_ID'] + "\"")
+
+      buildConfigField("String", "ROUTE_ID",
+          "\"" + integrationProperties['ROUTE_ID'] + "\"")
+
+      buildConfigField("String", "VIN",
+          "\"" + integrationProperties['VIN'] + "\"")
+
+      buildConfigField("String", "ODO_ID",
+          "\"" + integrationProperties['ODO_ID'] + "\"")
+
+      buildConfigField("String", "ODO_TRIGGER_ID",
+          "\"" + integrationProperties['ODO_TRIGGER_ID'] + "\"")
+
+      buildConfigField("String", "COLLISION_ID",
+          "\"" + integrationProperties['COLLISION_ID'] + "\"")
+
+      buildConfigField("String", "REPORT_CARD_ID",
+          "\"" + integrationProperties['REPORT_CARD_ID'] + "\"")
+    }
+
+    release {
+
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    }
+  }
+
+  compileOptions {
+
+    sourceCompatibility JavaVersion.VERSION_1_7
+    targetCompatibility JavaVersion.VERSION_1_7
+  }
+
+  lintOptions {
+
+    abortOnError false
+  }
+}
+
+dependencies {
+
+  // util
+
+  compile 'com.android.support:appcompat-v7:25.1.0'
+  provided 'com.android.support:support-annotations:25.1.0'
+
+  // net
+
+  compile 'com.squareup.retrofit2:retrofit:2.1.0'
+  compile 'com.squareup.okhttp3:logging-interceptor:3.4.1'
+
+  // gson
+
+  compile 'com.google.code.gson:gson:2.8.0'
+  compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+
+  // rx
+
+  compile 'io.reactivex:rxjava:1.2.5'
+  compile 'com.squareup.retrofit2:adapter-rxjava:2.1.0'
+
+  // jvm tests
+
+  testCompile 'org.robolectric:robolectric:3.1.2'
+  testCompile 'junit:junit:4.12'
+
+  // android tests
+
+  androidTestCompile 'com.android.support.test:runner:0.5'
+  androidTestCompile 'com.android.support.test:rules:0.5'
+  androidTestCompile 'org.hamcrest:hamcrest-library:1.3'
+}
+
+apply from: file('../gradle/mavenize.gradle')
+
+if (!integrationProperties['CI_ENV']) {
+
+  apply from: file('../gradle/bintray-upload.gradle')
+}
