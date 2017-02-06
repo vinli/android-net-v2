@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.LruCache;
+import android.util.Base64;
 import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -58,6 +59,8 @@ import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
 import static android.text.TextUtils.getTrimmedLength;
+import static android.util.Base64.NO_PADDING;
+import static android.util.Base64.NO_WRAP;
 import static java.lang.String.format;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
@@ -829,7 +832,9 @@ public final class VinliRx {
 
           long now = currentTimeMillis();
           writerFunc.call(v, t, baos = new ByteArrayOutputStream());
-          ed.putString(k, baos.toString("UTF-8")).putLong(kAccessed, now).putLong(kCreated, now);
+          ed.putString(k, Base64.encodeToString(baos.toByteArray(), NO_WRAP | NO_PADDING))
+              .putLong(kAccessed, now)
+              .putLong(kCreated, now);
         } catch (Exception e) {
           if (BuildConfig.DEBUG) {
             Log.e(VinliRx.class.getSimpleName(), "prefsCache put err", e);
@@ -888,7 +893,8 @@ public final class VinliRx {
           String raw = prefs.get().getString(k, null);
           if (raw == null) return null;
 
-          val = readerFunc.call(t, bais = new ByteArrayInputStream(raw.getBytes("UTF-8")));
+          val = readerFunc.call(t,
+              bais = new ByteArrayInputStream(Base64.decode(raw, NO_WRAP | NO_PADDING)));
 
           (ed = prefs.get().edit()).putLong(kAccessed, currentTimeMillis());
         } catch (Exception e) {
