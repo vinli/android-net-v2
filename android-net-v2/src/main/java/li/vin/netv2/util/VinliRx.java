@@ -698,6 +698,13 @@ public final class VinliRx {
    * should take care not to subvert this by preemptively creating the {@link SharedPreferences}
    * returned by the given prefsFactory.
    * <br/><br/>
+   * For high-capacity, high-load caches, instead use {@link #diskLruCache(long, File, int,
+   * Action3, Func2, Func1)} and/or {@link #memCache(int, Func2)}, since {@link SharedPreferences}
+   * implementations favor simplicity and durability over performance. A good use case for this
+   * cache would be storing a handful of values that are semi-expensive to reacquire, so require a
+   * greater lifetime and reliability than a typical cache item (access tokens, user objects,
+   * settings, etc).
+   * <br/><br/>
    * This cache operates on {@link Schedulers#io()}.
    */
   public static RxCache prefsCache( //
@@ -920,15 +927,17 @@ public final class VinliRx {
   /**
    * Create an instance of {@link RxCache} backed by {@link DiskLruCache}. The cache will work to
    * keep itself within the given size (bytes), but as documented by {@link DiskLruCache}, this is
-   * a weak guarantee.
+   * a weak guarantee. The appVersion parameter versions the entire cache, and if modified between
+   * usages, will effectively wipe out all preexisting entries.
    * <br/><br/>
    * Note that the instance returned by this method should be shared amongst clients, NOT created
    * multiple times, and it is an error to use the cacheDir given to this cache for any purpose
    * other than this cache.
    * <br/><br/>
-   * Avoid even using {@link Context#getCacheDir()}, and prefer instead to
-   * use a directory that may not be automatically cleaned by the system in an attempt to free
-   * memory.
+   * Avoid even using {@link Context#getCacheDir()}, and prefer instead to use a directory that may
+   * not be automatically cleaned by the system in an attempt to free memory. Modification of the
+   * contents of the given cacheDir by anything other than the cache itself may cause corruption,
+   * and trigger semi-expensive rebuilds.
    * <br/><br/>
    * This cache operates on {@link Schedulers#io()}.
    *
