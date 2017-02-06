@@ -654,6 +654,11 @@ public final class VinliRx {
     };
   }
 
+  /**
+   * Simple factory function to acquire a {@link SharedPreferences} instance from a given {@link
+   * Context}. Actually acquires the {@link SharedPreferences} from the given {@link Context}'s
+   * application Context so as to avoid leaking a strong reference to any other type of Context.
+   */
   public static Func0<SharedPreferences> simplePrefsFactory(@NonNull Context context,
       @NonNull final String name) {
     final Context appContext = context.getApplicationContext();
