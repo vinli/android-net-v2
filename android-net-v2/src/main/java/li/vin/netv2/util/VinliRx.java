@@ -1,5 +1,8 @@
 package li.vin.netv2.util;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.util.LruCache;
@@ -8,17 +11,14 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,9 +34,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import li.vin.netv2.BuildConfig;
 import li.vin.netv2.model.contract.ModelPage;
 import li.vin.netv2.model.contract.ModelTimeSeries;
@@ -65,14 +61,11 @@ import static android.text.TextUtils.getTrimmedLength;
 import static java.lang.String.format;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
-import static java.util.Arrays.asList;
+import static java.lang.System.nanoTime;
 import static java.util.Arrays.copyOf;
 import static java.util.Collections.sort;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static li.vin.netv2.BuildConfig.DISK_CACHE_FILENAME_FORMAT;
-import static li.vin.netv2.BuildConfig.MAX_DISK_CACHE_LOCK_MAP_SIZE;
-import static li.vin.netv2.BuildConfig.MAX_DISK_CACHE_PRUNES_PER_PASS;
 import static li.vin.netv2.util.VinliRx.AgeSince.SINCE_ACCESSED;
 import static li.vin.netv2.util.VinliRx.AgeSince.SINCE_CREATED;
 import static rx.Observable.concat;
@@ -661,6 +654,17 @@ public final class VinliRx {
     };
   }
 
+  public static Func0<SharedPreferences> simplePrefsFactory(@NonNull Context context,
+      @NonNull final String name) {
+    final Context appContext = context.getApplicationContext();
+    return new Func0<SharedPreferences>() {
+      @Override
+      public SharedPreferences call() {
+        return appContext.getSharedPreferences(name, Context.MODE_PRIVATE);
+      }
+    };
+  }
+
   private static byte[] longToBytes(long l, int byteLen) {
     byte[] result = new byte[byteLen];
     for (int i = byteLen - 1; i >= 0; i--) {
@@ -679,25 +683,290 @@ public final class VinliRx {
     return result;
   }
 
-  public static RxCache diskLruCache( //
+  /**
+   * Create an instance of {@link RxCache} backed by {@link SharedPreferences}. The cache will work
+   * to keep itself within the given size (number of entries), but this is not a guarantee. Prune
+   * jobs to keep the cache within its size constraints prefer to run when the cache is idle, so
+   * under load the cache will temporarily exceed its given size.
+   * <br/><br/>
+   * Note that the instance returned by this method should be shared amongst clients, NOT created
+   * multiple times, and it is an error to use the {@link SharedPreferences} given to this cache
+   * for any purpose other than this cache.
+   * <br/><br/>
+   * Also note that the {@link SharedPreferences} are provided to this cache as a factory function
+   * rather than a complete instance to avoid the overhead of loading at creation time, so callers
+   * should take care not to subvert this by preemptively creating the {@link SharedPreferences}
+   * returned by the given prefsFactory.
+   * <br/><br/>
+   * This cache operates on {@link Schedulers#io()}.
+   */
+  public static RxCache prefsCache( //
       final long size, //
-      @NonNull final File cacheDir, //
+      @NonNull final Func0<SharedPreferences> prefsFactory, //
       @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
       @NonNull final Func2<Type, InputStream, Object> readerFunc, //
       @Nullable Func1<String, String> fileNamingFunc //
   ) {
-    if (cacheDir.exists() && !cacheDir.isDirectory()) {
-      throw new IllegalArgumentException("cacheDir must be directory.");
-    }
-    if (!cacheDir.exists() && !cacheDir.mkdirs()) {
-      throw new IllegalArgumentException("cacheDir must be creatable as a directory.");
-    }
     final Func1<String, String> namer = fileNamingFunc == null
         ? simpleCacheFileNamer()
         : fileNamingFunc;
     return new RxCache() {
 
-      final DiskLruCache cache = DiskLruCache.create(FileSystem.SYSTEM, cacheDir, 1, 1, size);
+      final Lazy<SharedPreferences> prefs = Lazy.create(prefsFactory);
+      final AtomicBoolean pruning = new AtomicBoolean();
+      volatile long lastUsageNano;
+
+      void schedulePrune() {
+        lastUsageNano = nanoTime();
+        if (!pruning.compareAndSet(false, true)) return;
+
+        //noinspection ConstantConditions
+        final Scheduler.Worker w = writeScheduler().createWorker();
+        w.schedule(new Action0() {
+          @SuppressLint("CommitPrefEdits")
+          @Override
+          public void call() {
+            SharedPreferences.Editor ed = null;
+            boolean shouldTryLater = false;
+
+            try {
+              Map<String, ?> all = prefs.get().getAll();
+              if (all.size() <= size) return;
+
+              if (all.size() < size * 2) {
+                // don't defer until idle if the cache is twice its desired size ...
+                if (nanoTime() - lastUsageNano < SECONDS.toNanos(5)) {
+                  // ... otherwise, wait until the cache is idle to prune it
+                  shouldTryLater = true;
+                  return;
+                }
+              }
+
+              //Log.e("TESTO", "starting prune ..."); // FIXME
+
+              List<Pair<String, Long>> items = new ArrayList<>();
+              for (Entry<String, ?> e : all.entrySet()) {
+                String k = e.getKey();
+                if (k.endsWith("_created") || k.endsWith("_accessed")) continue;
+                long accessedAt = prefs.get().getLong(format("%s_accessed", k), 0L);
+                if (accessedAt == 0L) continue;
+                items.add(new Pair<>(k, accessedAt));
+              }
+
+              sort(items, new Comparator<Pair<String, Long>>() {
+                @Override
+                public int compare(Pair<String, Long> p1, Pair<String, Long> p2) {
+                  if (p1.second > p2.second) return 1;
+                  if (p1.second < p2.second) return -1;
+                  return 0;
+                }
+              });
+
+              ed = prefs.get().edit();
+              for (Iterator<Pair<String, Long>> i = items.iterator();
+                  i.hasNext() && items.size() > size; ) {
+                String k = i.next().first;
+                ed.remove(k).remove(format("%s_accessed", k)).remove(format("%s_created", k));
+                i.remove();
+              }
+
+              //Log.e("TESTO", "... ending prune"); // FIXME
+            } catch (Exception e) {
+              if (BuildConfig.DEBUG) {
+                Log.e(VinliRx.class.getSimpleName(), "prefsCache prune err", e);
+              }
+            } finally {
+              if (ed != null) {
+                try {
+                  ed.commit();
+                } catch (Exception ignored) {
+                }
+              }
+              w.unsubscribe();
+              pruning.set(false);
+              if (shouldTryLater) schedulePrune();
+            }
+          }
+        }, 10, SECONDS);
+      }
+
+      @NonNull
+      @Override
+      public String type() {
+        return "prefs";
+      }
+
+      @SuppressLint("CommitPrefEdits")
+      @Override
+      public void put(@NonNull String k, @Nullable Object v, @NonNull Type t) {
+        schedulePrune();
+
+        k = namer.call(k.replace("_accessed", "").replace("_created", ""));
+        String kAccessed = format("%s_accessed", k);
+        String kCreated = format("%s_created", k);
+
+        SharedPreferences.Editor ed = null;
+        ByteArrayOutputStream baos = null;
+
+        try {
+          ed = prefs.get().edit();
+          if (v == null) {
+            ed.remove(k).remove(kAccessed).remove(kCreated);
+            return;
+          }
+
+          long now = currentTimeMillis();
+          writerFunc.call(v, t, baos = new ByteArrayOutputStream());
+          ed.putString(k, baos.toString("UTF-8")).putLong(kAccessed, now).putLong(kCreated, now);
+        } catch (Exception e) {
+          if (BuildConfig.DEBUG) {
+            Log.e(VinliRx.class.getSimpleName(), "prefsCache put err", e);
+          }
+        } finally {
+          if (baos != null) {
+            try {
+              baos.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (ed != null) {
+            try {
+              ed.commit();
+            } catch (Exception ignored) {
+            }
+          }
+        }
+
+        schedulePrune();
+      }
+
+      @SuppressLint("CommitPrefEdits")
+      @Nullable
+      @Override
+      public Object get(@NonNull String k, @NonNull Type t, int maxAge, TimeUnit maxAgeUnit,
+          @NonNull AgeSince ageSince) {
+        schedulePrune();
+
+        k = namer.call(k.replace("_accessed", "").replace("_created", ""));
+        String kAccessed = format("%s_accessed", k);
+        String kCreated = format("%s_created", k);
+
+        Object val = null;
+
+        SharedPreferences.Editor ed = null;
+        ByteArrayInputStream bais = null;
+
+        try {
+          if (!prefs.get().contains(k)) return null;
+
+          long createdAt = prefs.get().getLong(kCreated, 0L);
+          long accessedAt = prefs.get().getLong(kAccessed, 0L);
+          if (createdAt == 0L || accessedAt == 0L) return null;
+
+          if (ageSince == SINCE_CREATED) {
+            if (currentTimeMillis() - createdAt > maxAgeUnit.toMillis(maxAge)) {
+              return null;
+            }
+          } else if (ageSince == SINCE_ACCESSED) {
+            if (currentTimeMillis() - accessedAt > maxAgeUnit.toMillis(maxAge)) {
+              return null;
+            }
+          }
+
+          String raw = prefs.get().getString(k, null);
+          if (raw == null) return null;
+
+          val = readerFunc.call(t, bais = new ByteArrayInputStream(raw.getBytes("UTF-8")));
+
+          (ed = prefs.get().edit()).putLong(kAccessed, currentTimeMillis());
+        } catch (Exception e) {
+          if (BuildConfig.DEBUG) {
+            Log.e(VinliRx.class.getSimpleName(), "prefsCache get err", e);
+          }
+        } finally {
+          if (bais != null) {
+            try {
+              bais.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (ed != null) {
+            try {
+              ed.commit();
+            } catch (Exception ignored) {
+            }
+          }
+        }
+
+        schedulePrune();
+
+        return val;
+      }
+
+      @Nullable
+      @Override
+      public Scheduler readScheduler() {
+        return Schedulers.io();
+      }
+
+      @Nullable
+      @Override
+      public Scheduler writeScheduler() {
+        return Schedulers.io();
+      }
+    };
+  }
+
+  /**
+   * Create an instance of {@link RxCache} backed by {@link DiskLruCache}. The cache will work to
+   * keep itself within the given size (bytes), but as documented by {@link DiskLruCache}, this is
+   * a weak guarantee.
+   * <br/><br/>
+   * Note that the instance returned by this method should be shared amongst clients, NOT created
+   * multiple times, and it is an error to use the cacheDir given to this cache for any purpose
+   * other than this cache.
+   * <br/><br/>
+   * Avoid even using {@link Context#getCacheDir()}, and prefer instead to
+   * use a directory that may not be automatically cleaned by the system in an attempt to free
+   * memory.
+   * <br/><br/>
+   * This cache operates on {@link Schedulers#io()}.
+   *
+   * @see DiskLruCache
+   */
+  public static RxCache diskLruCache( //
+      final long sizeBytes, //
+      @NonNull final File cacheDir, //
+      final int appVersion, //
+      @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
+      @NonNull final Func2<Type, InputStream, Object> readerFunc, //
+      @Nullable Func1<String, String> fileNamingFunc //
+  ) {
+    final Func1<String, String> namer = fileNamingFunc == null
+        ? simpleCacheFileNamer()
+        : fileNamingFunc;
+    return new RxCache() {
+
+      final Lazy<DiskLruCache> cache = Lazy.create(new Func0<DiskLruCache>() {
+        @Override
+        public DiskLruCache call() {
+          if (cacheDir.exists() && !cacheDir.isDirectory()) {
+            throw new IllegalArgumentException("cacheDir must be directory.");
+          }
+          if (!cacheDir.exists() && !cacheDir.mkdirs()) {
+            throw new IllegalArgumentException("cacheDir must be creatable as a directory.");
+          }
+          DiskLruCache cache = DiskLruCache.create( //
+              FileSystem.SYSTEM, cacheDir, appVersion, 1, sizeBytes);
+          try {
+            cache.initialize();
+          } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+          }
+          return cache;
+        }
+      });
+
       final Map<String, Pair<Object, Type>> rescheduledPuts = new HashMap<>();
 
       @NonNull
@@ -716,7 +985,8 @@ public final class VinliRx {
 
         if (!force && hasPrev) return;
 
-        final Scheduler.Worker w = Schedulers.io().createWorker();
+        //noinspection ConstantConditions
+        final Scheduler.Worker w = writeScheduler().createWorker();
         w.schedule(new Action0() {
           @Override
           public void call() {
@@ -750,13 +1020,11 @@ public final class VinliRx {
 
         try {
           if (v == null) {
-            cache.remove(k);
+            cache.get().remove(k);
             return;
           }
 
-          ed = cache.edit(k);
-
-          if (ed == null) {
+          if ((ed = cache.get().edit(k)) == null) {
             reschedulePut(kk, v, t, false);
             return;
           }
@@ -776,6 +1044,8 @@ public final class VinliRx {
 
           writerFunc.call(v, t, os);
           b.readAll(snk);
+        } catch (IllegalArgumentException iae) {
+          throw iae;
         } catch (Exception e) {
           if (BuildConfig.DEBUG) {
             Log.e(VinliRx.class.getSimpleName(), "diskLruCache put err", e);
@@ -818,7 +1088,7 @@ public final class VinliRx {
         Object val = null;
 
         try {
-          sn = cache.get(k);
+          sn = cache.get().get(k);
           if (sn == null) return null;
           src = sn.getSource(0);
           Buffer b = new okio.Buffer();
@@ -854,6 +1124,8 @@ public final class VinliRx {
           val = readerFunc.call(t, is);
 
           if ((ed = sn.edit()) != null) bb.readAll(snk = ed.newSink(0));
+        } catch (IllegalArgumentException iae) {
+          throw iae;
         } catch (Exception e) {
           if (BuildConfig.DEBUG) {
             Log.e(VinliRx.class.getSimpleName(), "diskLruCache get err", e);
@@ -908,355 +1180,46 @@ public final class VinliRx {
     };
   }
 
-  public static RxCache diskCache( //
-      final int size, //
-      @NonNull final File cacheDir, //
-      @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
-      @NonNull final Func2<Type, InputStream, Object> readerFunc, //
-      @Nullable Func1<String, String> fileNamingFunc //
-  ) {
-    if (cacheDir.exists() && !cacheDir.isDirectory()) {
-      throw new IllegalArgumentException("cacheDir must be directory.");
-    }
-    final Func1<String, String> namer = fileNamingFunc == null
-        ? simpleCacheFileNamer()
-        : fileNamingFunc;
-    return new RxCache() {
-
-      final Map<String, ReentrantReadWriteLock> locks = new LinkedHashMap<>();
-      final ReentrantLock locksLock = new ReentrantLock();
-      final String cacheFilePrefix = format(DISK_CACHE_FILENAME_FORMAT, "");
-      final AtomicBoolean pruning = new AtomicBoolean();
-
-      @NonNull
-      @Override
-      public String type() {
-        return "disk";
-      }
-
-      // quietly delete the least recently modified files until cache is desired size.
-      private boolean pruneCache() {
-        //long nano = System.nanoTime(); // FIXME
-        //if (!pruning.compareAndSet(false, true)) return;
-        Log.e("TESTO", "prune starting...."); // FIXME
-        try {
-          List<File> files = new ArrayList<>(asList(cacheDir.listFiles()));
-          if (files.isEmpty()) return true;
-          for (Iterator<File> i = files.iterator(); i.hasNext(); ) {
-            File f = i.next();
-            if (f.isDirectory() || !f.getName().startsWith(cacheFilePrefix)) i.remove();
-          }
-          if (files.isEmpty()) return true;
-
-          if (files.size() > 1) {
-            final Map<File, Long> lmm = new HashMap<>();
-            for (File f : files) lmm.put(f, f.lastModified());
-            sort(files, new Comparator<File>() {
-              @Override
-              public int compare(File f1, File f2) {
-                Long f1l = lmm.get(f1);
-                Long f2l = lmm.get(f2);
-                if (f1l == null && f2l == null) return 0;
-                if (f2l == null) return 1;
-                if (f1l == null) return -1;
-                if (f1l > f2l) return 1;
-                if (f1l < f2l) return -1;
-                return 0;
-              }
-            });
-          }
-
-          int filesRemaining = files.size();
-          for (int i = 0; //
-              i < files.size() && //
-                  filesRemaining > size && //
-                  files.size() - filesRemaining < MAX_DISK_CACHE_PRUNES_PER_PASS; //
-              i++) {
-            File fileToPrune = files.get(i);
-            ReentrantReadWriteLock l = null;
-            try {
-              l = lockForKey(fileToPrune.getName(), true, true);
-              if (l == null) continue;
-              if (fileToPrune.delete()) filesRemaining--;
-            } finally {
-              if (l != null) l.writeLock().unlock();
-            }
-          }
-
-          Log.e("TESTO", "deleted " + (files.size() - filesRemaining)); // FIXME
-
-          if (filesRemaining > size) return false;
-        } catch (Exception e) {
-          if (BuildConfig.DEBUG) {
-            Log.e(VinliRx.class.getSimpleName(), "pruneCache err", e);
-          }
-        } finally {
-          Log.e("TESTO", "..... prune finished"); // FIXME
-        }
-        //finally {
-        //pruning.set(false);
-        //}
-        //log("PRUNE TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nano)
-        //    + " ms"); // FIXME
-        return true;
-      }
-
-      private ReentrantReadWriteLock lockForKey(@NonNull String k, boolean write) {
-        return lockForKey(k, write, false);
-      }
-
-      private boolean tryLock(Lock lk) {
-        try {
-          return lk.tryLock(0, SECONDS);
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-
-      private ReentrantReadWriteLock lockForKey(@NonNull String k, boolean write, boolean tryLk) {
-
-        boolean locksLockLocked = false;
-        try {
-          if (tryLk) {
-            if (!tryLock(locksLock)) return null;
-          } else {
-            locksLock.lock();
-          }
-          locksLockLocked = true;
-
-          ReentrantReadWriteLock lock = locks.remove(k);
-          if (lock == null) lock = new ReentrantReadWriteLock();
-          locks.put(k, lock);
-
-          // while we're here, don't let the number of locks grow indefinitely.
-          for (Iterator<Entry<String, ReentrantReadWriteLock>> i = locks.entrySet().iterator();
-              i.hasNext() && locks.size() > MAX_DISK_CACHE_LOCK_MAP_SIZE; ) {
-            //i.hasNext() && locks.size() > 3; ) { // FIXME
-
-            ReentrantReadWriteLock l = i.next().getValue();
-            if (l == lock) continue;
-
-            boolean lked = false;
-            try {
-              if (tryLock(l.writeLock())) {
-                lked = true;
-                i.remove();
-              }
-            } finally {
-              if (lked) l.writeLock().unlock();
-            }
-          }
-
-          if (write) {
-            if (tryLk) {
-              if (!tryLock(lock.writeLock())) return null;
-            } else {
-              lock.writeLock().lock();
-            }
-          } else {
-            if (tryLk) {
-              if (!tryLock(lock.readLock())) {
-                return null;
-              }
-            } else {
-              lock.readLock().lock();
-            }
-          }
-          return lock;
-        } finally {
-          if (locksLockLocked) locksLock.unlock();
-        }
-      }
-
-      @Override
-      public void put(@NonNull String k, @Nullable final Object v, @NonNull Type t) {
-        //long now = System.nanoTime(); // FIXME
-        k = format(DISK_CACHE_FILENAME_FORMAT, namer.call(k));
-        File f = new File(cacheDir, k);
-
-        OutputStream os = null;
-        ReentrantReadWriteLock lock = null;
-        try {
-          lock = lockForKey(k, true);
-
-          if (v == null) {
-            //noinspection ResultOfMethodCallIgnored
-            f.delete();
-            return;
-          }
-          //noinspection ResultOfMethodCallIgnored
-          cacheDir.mkdirs();
-          os = new FileOutputStream(f);
-
-          // write prefix bytes of timestamps - created at, modified at
-          byte byteLen = (byte) Long.SIZE / (byte) Byte.SIZE;
-          byte[] nowBytes = longToBytes(currentTimeMillis(), byteLen);
-          byte[] timestampBytes = new byte[nowBytes.length * 2 + 1];
-          timestampBytes[0] = byteLen;
-          arraycopy(nowBytes, 0, timestampBytes, 1, nowBytes.length);
-          arraycopy(nowBytes, 0, timestampBytes, 1 + nowBytes.length, nowBytes.length);
-          os.write(timestampBytes);
-
-          writerFunc.call(v, t, os);
-        } catch (Exception e) {
-          if (BuildConfig.DEBUG) {
-            Log.e(VinliRx.class.getSimpleName(), "diskCache put err", e);
-          }
-        } finally {
-          if (os != null) {
-            try {
-              os.close();
-            } catch (Exception ignored) {
-            }
-          }
-          if (lock != null) lock.writeLock().unlock();
-        }
-
-        schedulePrune();
-        //Log.e("TESTO",
-        //    "PUT TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - now) + " ms"); // FIXME
-      }
-
-      private void schedulePrune() {
-        if (!pruning.compareAndSet(false, true)) return;
-        final Scheduler.Worker w = Schedulers.io().createWorker();
-        w.schedule(new Action0() {
-          @Override
-          public void call() {
-            boolean shouldReschedule = false;
-            try {
-              shouldReschedule = !pruneCache();
-            } finally {
-              w.unsubscribe();
-              pruning.set(false);
-              if (shouldReschedule) schedulePrune();
-            }
-          }
-        }, 3, SECONDS);
-      }
-
-      @Nullable
-      @Override
-      public Object get(@NonNull String k, @NonNull Type t, //
-          int maxAge, TimeUnit maxAgeUnit, @NonNull AgeSince ageSince) {
-        //long now = System.nanoTime(); // FIXME
-        k = format(DISK_CACHE_FILENAME_FORMAT, namer.call(k));
-        File f = new File(cacheDir, k);
-
-        Object val = null;
-        InputStream is = null;
-        ReentrantReadWriteLock lock = null;
-        byte byteLen = 0;
-        try {
-          lock = lockForKey(k, false);
-          is = new FileInputStream(f);
-
-          byteLen = (byte) is.read();
-          byte[] b1 = new byte[byteLen];
-          byte[] b2 = new byte[byteLen];
-          //noinspection StatementWithEmptyBody
-          for (int r = 0; r < byteLen; r += is.read(b1, r, byteLen - r)) {
-          }
-          //noinspection StatementWithEmptyBody
-          for (int r = 0; r < byteLen; r += is.read(b2, r, byteLen - r)) {
-          }
-          if (ageSince == SINCE_CREATED) {
-            if (currentTimeMillis() - bytesToLong(b2, byteLen) > maxAgeUnit.toMillis(maxAge)) {
-              return null;
-            }
-          } else if (ageSince == SINCE_ACCESSED) {
-            if (currentTimeMillis() - bytesToLong(b1, byteLen) > maxAgeUnit.toMillis(maxAge)) {
-              return null;
-            }
-          }
-
-          //noinspection ResultOfMethodCallIgnored
-          f.setLastModified(currentTimeMillis());
-
-          val = readerFunc.call(t, is);
-        } catch (FileNotFoundException ignored) {
-        } catch (Exception e) {
-          if (BuildConfig.DEBUG) {
-            Log.e(VinliRx.class.getSimpleName(), "diskCache get err", e);
-          }
-        } finally {
-          if (is != null) {
-            try {
-              is.close();
-            } catch (Exception ignored) {
-            }
-          }
-          if (lock != null) lock.readLock().unlock();
-        }
-
-        if (val == null) return null;
-
-        // Update the access time prefix bytes ...
-
-        lock = null;
-        RandomAccessFile raf = null;
-        try {
-          lock = lockForKey(k, true);
-          raf = new RandomAccessFile(f, "w");
-          raf.seek(byteLen);
-          raf.write(longToBytes(currentTimeMillis(), byteLen));
-        } catch (FileNotFoundException ignored) {
-        } catch (Exception e) {
-          if (BuildConfig.DEBUG) {
-            Log.e(VinliRx.class.getSimpleName(), "diskCache update access time err", e);
-          }
-        } finally {
-          if (raf != null) {
-            try {
-              raf.close();
-            } catch (Exception ignored) {
-            }
-          }
-          if (lock != null) lock.writeLock().unlock();
-        }
-
-        //Log.e("TESTO",
-        //    "GET TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - now) + " ms"); // FIXME
-        return val;
-      }
-
-      @Nullable
-      @Override
-      public Scheduler readScheduler() {
-        return Schedulers.io();
-      }
-
-      @Nullable
-      @Override
-      public Scheduler writeScheduler() {
-        return Schedulers.io();
-      }
-    };
-  }
-
-  private static class MemCacheVal {
+  private static final class MemCacheVal {
 
     final long creationTime;
     volatile long accessTime;
     final Object val;
 
-    private MemCacheVal(Object val) {
-      this.creationTime = this.accessTime = currentTimeMillis();
+    MemCacheVal(Object val) {
+      this.creationTime = this.accessTime = nanoTime();
       this.val = val;
     }
   }
 
+  /**
+   * Create an instance of {@link RxCache} backed by {@link LruCache}. The cache will always keep
+   * itself within the given size (number of entries by default, or custom meaning given by
+   * optional sizeOfFunc param).
+   * <br/><br/>
+   * This cache does not operate by default on a particular {@link Scheduler}.
+   *
+   * @see LruCache
+   */
   public static RxCache memCache( //
-      final int size, @Nullable final Func2<String, Object, Integer> sizeOfFunc) {
+      final int size, //
+      @Nullable final Func2<String, Object, Integer> sizeOfFunc //
+  ) {
     return new RxCache() {
 
-      final LruCache<String, MemCacheVal> c = new LruCache<String, MemCacheVal>(size) {
-        @Override
-        protected int sizeOf(String key, MemCacheVal value) {
-          if (sizeOfFunc == null) return super.sizeOf(key, value);
-          return sizeOfFunc.call(key, value.val);
-        }
-      };
+      final Lazy<LruCache<String, MemCacheVal>> cache =
+          Lazy.create(new Func0<LruCache<String, MemCacheVal>>() {
+            @Override
+            public LruCache<String, MemCacheVal> call() {
+              return new LruCache<String, MemCacheVal>(size) {
+                @Override
+                protected int sizeOf(String key, MemCacheVal value) {
+                  if (sizeOfFunc == null) return super.sizeOf(key, value);
+                  return sizeOfFunc.call(key, value.val);
+                }
+              };
+            }
+          });
 
       @NonNull
       @Override
@@ -1267,9 +1230,9 @@ public final class VinliRx {
       @Override
       public void put(@NonNull String k, @Nullable Object v, @NonNull Type t) {
         if (v == null) {
-          c.remove(k);
+          cache.get().remove(k);
         } else {
-          c.put(k, new MemCacheVal(v));
+          cache.get().put(k, new MemCacheVal(v));
         }
       }
 
@@ -1277,17 +1240,17 @@ public final class VinliRx {
       @Override
       public Object get(@NonNull String k, @NonNull Type t, //
           int maxAge, TimeUnit maxAgeUnit, @NonNull AgeSince ageSince) {
-        MemCacheVal val = c.get(k);
+        MemCacheVal val = cache.get().get(k);
         if (val == null) return null;
-        long now = currentTimeMillis();
+        long now = nanoTime();
         long lastAccess = val.accessTime;
         val.accessTime = now;
         if (ageSince == SINCE_CREATED) {
-          if (now - val.creationTime > maxAgeUnit.toMillis(maxAge)) {
+          if (now - val.creationTime > maxAgeUnit.toNanos(maxAge)) {
             return null;
           }
         } else if (ageSince == SINCE_ACCESSED) {
-          if (now - lastAccess > maxAgeUnit.toMillis(maxAge)) {
+          if (now - lastAccess > maxAgeUnit.toNanos(maxAge)) {
             return null;
           }
         }
