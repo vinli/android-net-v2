@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
@@ -42,6 +43,11 @@ import li.vin.netv2.model.contract.ModelPage;
 import li.vin.netv2.model.contract.ModelTimeSeries;
 import li.vin.netv2.model.contract.ModelWrapper;
 import li.vin.netv2.model.contract.StrictModel;
+import okhttp3.internal.cache.DiskLruCache;
+import okhttp3.internal.io.FileSystem;
+import okio.Buffer;
+import okio.Sink;
+import okio.Source;
 import rx.Observable;
 import rx.Observer;
 import rx.Scheduler;
@@ -55,6 +61,7 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.schedulers.Schedulers;
 
+import static android.text.TextUtils.getTrimmedLength;
 import static java.lang.String.format;
 import static java.lang.System.arraycopy;
 import static java.lang.System.currentTimeMillis;
@@ -474,13 +481,13 @@ public final class VinliRx {
           try {
             final Object val = cache.get(k, t, maxAge, maxAgeUnit, ageSince);
             if (val != null) {
-              //Log.e("TESTO", "cache hit from from " + cache.type() + " ... "); // FIXME
+              Log.e("TESTO", "cache hit from from " + cache.type() + " ... "); // FIXME
               if (putIntoLowerCaches) {
                 schedulePutIntoCache(k, val, t, copyOf(caches, fCacheIndex));
               }
               s.onNext(val);
             } else {
-              //Log.e("TESTO", "cache miss from from " + cache.type() + " ... "); // FIXME
+              Log.e("TESTO", "cache miss from from " + cache.type() + " ... "); // FIXME
             }
             s.onCompleted();
           } catch (Exception e) {
@@ -521,7 +528,7 @@ public final class VinliRx {
       Scheduler scheduler = cache.writeScheduler();
       if (scheduler == null) scheduler = defaultScheduler;
       if (scheduler == null) {
-        //Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
+        Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
         cache.put(k, v, t);
       } else {
         final Scheduler.Worker w = scheduler.createWorker();
@@ -530,7 +537,7 @@ public final class VinliRx {
           public void call() {
             try {
               cache.put(k, v, t);
-              //Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
+              Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
             } finally {
               w.unsubscribe();
             }
@@ -544,12 +551,15 @@ public final class VinliRx {
    * Simple cache file naming func. This simply replaces out any characters that aren't valid in
    * a filename with an underscore (_). Care should be taken when using this approach not to
    * generate accidental filename collisions by choosing keys that are too short and, with invalid
-   * characters replaced by underscores, might be identical.
+   * characters replaced by underscores, might be identical. Keys greater than 64 chars in length
+   * are truncated. Null or empty keys are replaced with randomly generated UUIDs.
    */
   public static Func1<String, String> simpleCacheFileNamer() {
     return new Func1<String, String>() {
       @Override
       public String call(String k) {
+        if (k == null || getTrimmedLength(k) == 0) k = UUID.randomUUID().toString();
+        if (k.length() > 64) k = k.substring(0, 64);
         return k.replaceAll("\\W+", "_");
       }
     };
@@ -667,6 +677,235 @@ public final class VinliRx {
       result |= (b[i] & 0xFF);
     }
     return result;
+  }
+
+  public static RxCache diskLruCache( //
+      final long size, //
+      @NonNull final File cacheDir, //
+      @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
+      @NonNull final Func2<Type, InputStream, Object> readerFunc, //
+      @Nullable Func1<String, String> fileNamingFunc //
+  ) {
+    if (cacheDir.exists() && !cacheDir.isDirectory()) {
+      throw new IllegalArgumentException("cacheDir must be directory.");
+    }
+    if (!cacheDir.exists() && !cacheDir.mkdirs()) {
+      throw new IllegalArgumentException("cacheDir must be creatable as a directory.");
+    }
+    final Func1<String, String> namer = fileNamingFunc == null
+        ? simpleCacheFileNamer()
+        : fileNamingFunc;
+    return new RxCache() {
+
+      final DiskLruCache cache = DiskLruCache.create(FileSystem.SYSTEM, cacheDir, 1, 1, size);
+      final Map<String, Pair<Object, Type>> rescheduledPuts = new HashMap<>();
+
+      @NonNull
+      @Override
+      public String type() {
+        return "diskLru";
+      }
+
+      private void reschedulePut(@NonNull final String k, @Nullable Object v, @NonNull Type t,
+          boolean force) {
+
+        boolean hasPrev;
+        synchronized (rescheduledPuts) {
+          hasPrev = rescheduledPuts.put(k, new Pair<>(v, t)) != null;
+        }
+
+        if (!force && hasPrev) return;
+
+        final Scheduler.Worker w = Schedulers.io().createWorker();
+        w.schedule(new Action0() {
+          @Override
+          public void call() {
+            Pair<Object, Type> vals;
+            synchronized (rescheduledPuts) {
+              vals = rescheduledPuts.get(k);
+            }
+            if (vals == null) throw new RuntimeException("illegal null vals");
+            try {
+              put(k, vals.first, vals.second);
+            } finally {
+              w.unsubscribe();
+              boolean newPuts;
+              synchronized (rescheduledPuts) {
+                newPuts = rescheduledPuts.get(k) != vals;
+                if (!newPuts) rescheduledPuts.remove(k);
+              }
+              if (newPuts) reschedulePut(k, vals.first, vals.second, true);
+            }
+          }
+        });
+      }
+
+      @Override
+      public void put(@NonNull final String kk, @Nullable final Object v, @NonNull final Type t) {
+        final String k = namer.call(kk);
+
+        OutputStream os = null;
+        Sink snk = null;
+        DiskLruCache.Editor ed = null;
+
+        try {
+          if (v == null) {
+            cache.remove(k);
+            return;
+          }
+
+          ed = cache.edit(k);
+
+          if (ed == null) {
+            reschedulePut(kk, v, t, false);
+            return;
+          }
+
+          snk = ed.newSink(0);
+          Buffer b = new okio.Buffer();
+          os = b.outputStream();
+
+          // write prefix bytes of timestamps - modified at, created at
+          byte byteLen = (byte) Long.SIZE / (byte) Byte.SIZE;
+          byte[] nowBytes = longToBytes(currentTimeMillis(), byteLen);
+          byte[] timestampBytes = new byte[nowBytes.length * 2 + 1];
+          timestampBytes[0] = byteLen;
+          arraycopy(nowBytes, 0, timestampBytes, 1, nowBytes.length);
+          arraycopy(nowBytes, 0, timestampBytes, 1 + nowBytes.length, nowBytes.length);
+          os.write(timestampBytes);
+
+          writerFunc.call(v, t, os);
+          b.readAll(snk);
+        } catch (Exception e) {
+          if (BuildConfig.DEBUG) {
+            Log.e(VinliRx.class.getSimpleName(), "diskLruCache put err", e);
+          }
+        } finally {
+          if (os != null) {
+            try {
+              os.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (snk != null) {
+            try {
+              snk.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (ed != null) {
+            try {
+              ed.commit();
+            } catch (Exception ignored) {
+            }
+          }
+        }
+      }
+
+      @Nullable
+      @Override
+      public Object get(@NonNull String k, @NonNull Type t, int maxAge, TimeUnit maxAgeUnit,
+          @NonNull AgeSince ageSince) {
+        k = namer.call(k);
+
+        InputStream is = null;
+        Source src = null;
+        DiskLruCache.Snapshot sn = null;
+
+        Sink snk = null;
+        DiskLruCache.Editor ed = null;
+
+        Object val = null;
+
+        try {
+          sn = cache.get(k);
+          if (sn == null) return null;
+          src = sn.getSource(0);
+          Buffer b = new okio.Buffer();
+          b.writeAll(src);
+          is = b.inputStream();
+
+          byte byteLen = (byte) is.read();
+
+          Buffer bb = new Buffer();
+          bb.writeByte(byteLen);
+          byte[] nowBytes = longToBytes(currentTimeMillis(), byteLen);
+          bb.write(nowBytes);
+          b.copyTo(bb, nowBytes.length, b.size() - nowBytes.length);
+
+          byte[] b1 = new byte[byteLen];
+          byte[] b2 = new byte[byteLen];
+          //noinspection StatementWithEmptyBody
+          for (int r = 0; r < byteLen; r += is.read(b1, r, byteLen - r)) {
+          }
+          //noinspection StatementWithEmptyBody
+          for (int r = 0; r < byteLen; r += is.read(b2, r, byteLen - r)) {
+          }
+          if (ageSince == SINCE_CREATED) {
+            if (currentTimeMillis() - bytesToLong(b2, byteLen) > maxAgeUnit.toMillis(maxAge)) {
+              return null;
+            }
+          } else if (ageSince == SINCE_ACCESSED) {
+            if (currentTimeMillis() - bytesToLong(b1, byteLen) > maxAgeUnit.toMillis(maxAge)) {
+              return null;
+            }
+          }
+
+          val = readerFunc.call(t, is);
+
+          if ((ed = sn.edit()) != null) bb.readAll(snk = ed.newSink(0));
+        } catch (Exception e) {
+          if (BuildConfig.DEBUG) {
+            Log.e(VinliRx.class.getSimpleName(), "diskLruCache get err", e);
+          }
+        } finally {
+          if (is != null) {
+            try {
+              is.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (src != null) {
+            try {
+              src.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (sn != null) {
+            try {
+              sn.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (snk != null) {
+            try {
+              snk.close();
+            } catch (Exception ignored) {
+            }
+          }
+          if (ed != null) {
+            try {
+              ed.commit();
+            } catch (Exception ignored) {
+            }
+          }
+        }
+
+        return val;
+      }
+
+      @Nullable
+      @Override
+      public Scheduler readScheduler() {
+        return Schedulers.io();
+      }
+
+      @Nullable
+      @Override
+      public Scheduler writeScheduler() {
+        return Schedulers.io();
+      }
+    };
   }
 
   public static RxCache diskCache( //
