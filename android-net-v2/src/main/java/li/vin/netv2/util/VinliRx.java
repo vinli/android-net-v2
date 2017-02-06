@@ -978,13 +978,7 @@ public final class VinliRx {
 
       final Map<String, Pair<Object, Type>> rescheduledPuts = new HashMap<>();
 
-      @NonNull
-      @Override
-      public String type() {
-        return "diskLru";
-      }
-
-      private void reschedulePut(@NonNull final String k, @Nullable Object v, @NonNull Type t,
+      void reschedulePut(@NonNull final String k, @Nullable Object v, @NonNull Type t,
           boolean force) {
 
         boolean hasPrev;
@@ -1017,6 +1011,12 @@ public final class VinliRx {
             }
           }
         });
+      }
+
+      @NonNull
+      @Override
+      public String type() {
+        return "diskLru";
       }
 
       @Override
