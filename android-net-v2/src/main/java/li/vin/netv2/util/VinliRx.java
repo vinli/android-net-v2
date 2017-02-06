@@ -34,6 +34,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import li.vin.netv2.BuildConfig;
 import li.vin.netv2.model.contract.ModelPage;
@@ -62,6 +64,7 @@ import static java.util.Collections.sort;
 import static java.util.Collections.synchronizedList;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static li.vin.netv2.BuildConfig.DISK_CACHE_FILENAME_FORMAT;
+import static li.vin.netv2.BuildConfig.MAX_DISK_CACHE_LOCK_MAP_SIZE;
 import static li.vin.netv2.BuildConfig.MAX_DISK_CACHE_PRUNES_PER_PASS;
 import static li.vin.netv2.util.VinliRx.AgeSince.SINCE_ACCESSED;
 import static li.vin.netv2.util.VinliRx.AgeSince.SINCE_CREATED;
@@ -471,13 +474,13 @@ public final class VinliRx {
           try {
             final Object val = cache.get(k, t, maxAge, maxAgeUnit, ageSince);
             if (val != null) {
-              Log.e("TESTO", "cache hit from from " + cache.type() + " ... "); // FIXME
+              //Log.e("TESTO", "cache hit from from " + cache.type() + " ... "); // FIXME
               if (putIntoLowerCaches) {
                 schedulePutIntoCache(k, val, t, copyOf(caches, fCacheIndex));
               }
               s.onNext(val);
             } else {
-              Log.e("TESTO", "cache miss from from " + cache.type() + " ... "); // FIXME
+              //Log.e("TESTO", "cache miss from from " + cache.type() + " ... "); // FIXME
             }
             s.onCompleted();
           } catch (Exception e) {
@@ -518,7 +521,7 @@ public final class VinliRx {
       Scheduler scheduler = cache.writeScheduler();
       if (scheduler == null) scheduler = defaultScheduler;
       if (scheduler == null) {
-        Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
+        //Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
         cache.put(k, v, t);
       } else {
         final Scheduler.Worker w = scheduler.createWorker();
@@ -527,7 +530,7 @@ public final class VinliRx {
           public void call() {
             try {
               cache.put(k, v, t);
-              Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
+              //Log.e("TESTO", "putting into " + cache.type() + "cache"); // FIXME
             } finally {
               w.unsubscribe();
             }
@@ -682,6 +685,7 @@ public final class VinliRx {
     return new RxCache() {
 
       final Map<String, ReentrantReadWriteLock> locks = new LinkedHashMap<>();
+      final ReentrantLock locksLock = new ReentrantLock();
       final String cacheFilePrefix = format(DISK_CACHE_FILENAME_FORMAT, "");
       final AtomicBoolean pruning = new AtomicBoolean();
 
@@ -692,27 +696,32 @@ public final class VinliRx {
       }
 
       // quietly delete the least recently modified files until cache is desired size.
-      private void pruneCache() {
-        //long now = System.nanoTime(); // FIXME
-        if (!pruning.compareAndSet(false, true)) return;
+      private boolean pruneCache() {
+        //long nano = System.nanoTime(); // FIXME
+        //if (!pruning.compareAndSet(false, true)) return;
+        Log.e("TESTO", "prune starting...."); // FIXME
         try {
           List<File> files = new ArrayList<>(asList(cacheDir.listFiles()));
-          if (files.isEmpty()) return;
+          if (files.isEmpty()) return true;
           for (Iterator<File> i = files.iterator(); i.hasNext(); ) {
             File f = i.next();
             if (f.isDirectory() || !f.getName().startsWith(cacheFilePrefix)) i.remove();
           }
-          if (files.isEmpty()) return;
+          if (files.isEmpty()) return true;
 
-          // FIXME - sort by prefix bytes, not lastModified. This is broken.
           if (files.size() > 1) {
             final Map<File, Long> lmm = new HashMap<>();
             for (File f : files) lmm.put(f, f.lastModified());
             sort(files, new Comparator<File>() {
               @Override
               public int compare(File f1, File f2) {
-                if (lmm.get(f1) > lmm.get(f2)) return 1;
-                if (lmm.get(f1) < lmm.get(f2)) return -1;
+                Long f1l = lmm.get(f1);
+                Long f2l = lmm.get(f2);
+                if (f1l == null && f2l == null) return 0;
+                if (f2l == null) return 1;
+                if (f1l == null) return -1;
+                if (f1l > f2l) return 1;
+                if (f1l < f2l) return -1;
                 return 0;
               }
             });
@@ -727,51 +736,96 @@ public final class VinliRx {
             File fileToPrune = files.get(i);
             ReentrantReadWriteLock l = null;
             try {
-              l = lockForKey(fileToPrune.getName(), true);
+              l = lockForKey(fileToPrune.getName(), true, true);
+              if (l == null) continue;
               if (fileToPrune.delete()) filesRemaining--;
             } finally {
               if (l != null) l.writeLock().unlock();
             }
           }
+
+          Log.e("TESTO", "deleted " + (files.size() - filesRemaining)); // FIXME
+
+          if (filesRemaining > size) return false;
         } catch (Exception e) {
           if (BuildConfig.DEBUG) {
             Log.e(VinliRx.class.getSimpleName(), "pruneCache err", e);
           }
         } finally {
-          pruning.set(false);
+          Log.e("TESTO", "..... prune finished"); // FIXME
         }
-        //Log.e("TESTO", "PRUNE TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - now)
+        //finally {
+        //pruning.set(false);
+        //}
+        //log("PRUNE TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - nano)
         //    + " ms"); // FIXME
+        return true;
       }
 
       private ReentrantReadWriteLock lockForKey(@NonNull String k, boolean write) {
-        synchronized (locks) {
+        return lockForKey(k, write, false);
+      }
 
-          ReentrantReadWriteLock lock = locks.get(k);
-          if (lock == null) locks.put(k, lock = new ReentrantReadWriteLock());
+      private boolean tryLock(Lock lk) {
+        try {
+          return lk.tryLock(0, SECONDS);
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }
+
+      private ReentrantReadWriteLock lockForKey(@NonNull String k, boolean write, boolean tryLk) {
+
+        boolean locksLockLocked = false;
+        try {
+          if (tryLk) {
+            if (!tryLock(locksLock)) return null;
+          } else {
+            locksLock.lock();
+          }
+          locksLockLocked = true;
+
+          ReentrantReadWriteLock lock = locks.remove(k);
+          if (lock == null) lock = new ReentrantReadWriteLock();
+          locks.put(k, lock);
 
           // while we're here, don't let the number of locks grow indefinitely.
           for (Iterator<Entry<String, ReentrantReadWriteLock>> i = locks.entrySet().iterator();
-            //i.hasNext() && locks.size() > MAX_DISK_CACHE_LOCK_MAP_SIZE; ) {
-              i.hasNext() && locks.size() > 3; ) { // FIXME
+              i.hasNext() && locks.size() > MAX_DISK_CACHE_LOCK_MAP_SIZE; ) {
+            //i.hasNext() && locks.size() > 3; ) { // FIXME
 
             ReentrantReadWriteLock l = i.next().getValue();
             if (l == lock) continue;
 
+            boolean lked = false;
             try {
-              l.writeLock().lock();
-              i.remove();
+              if (tryLock(l.writeLock())) {
+                lked = true;
+                i.remove();
+              }
             } finally {
-              l.writeLock().unlock();
+              if (lked) l.writeLock().unlock();
             }
           }
 
           if (write) {
-            lock.writeLock().lock();
+            if (tryLk) {
+              if (!tryLock(lock.writeLock())) return null;
+            } else {
+              lock.writeLock().lock();
+            }
           } else {
-            lock.readLock().lock();
+            if (tryLk) {
+              if (!tryLock(lock.readLock())) {
+                return null;
+              }
+            } else {
+              lock.readLock().lock();
+            }
           }
           return lock;
+        } finally {
+          if (locksLockLocked) locksLock.unlock();
         }
       }
 
@@ -818,9 +872,28 @@ public final class VinliRx {
           }
           if (lock != null) lock.writeLock().unlock();
         }
-        pruneCache();
+
+        schedulePrune();
         //Log.e("TESTO",
         //    "PUT TOOK " + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - now) + " ms"); // FIXME
+      }
+
+      private void schedulePrune() {
+        if (!pruning.compareAndSet(false, true)) return;
+        final Scheduler.Worker w = Schedulers.io().createWorker();
+        w.schedule(new Action0() {
+          @Override
+          public void call() {
+            boolean shouldReschedule = false;
+            try {
+              shouldReschedule = !pruneCache();
+            } finally {
+              w.unsubscribe();
+              pruning.set(false);
+              if (shouldReschedule) schedulePrune();
+            }
+          }
+        }, 3, SECONDS);
       }
 
       @Nullable
@@ -857,6 +930,9 @@ public final class VinliRx {
               return null;
             }
           }
+
+          //noinspection ResultOfMethodCallIgnored
+          f.setLastModified(currentTimeMillis());
 
           val = readerFunc.call(t, is);
         } catch (FileNotFoundException ignored) {

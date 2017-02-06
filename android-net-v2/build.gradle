@@ -38,7 +38,7 @@ android {
 
       buildConfigField("Integer", "BASE_MODEL_SERIALIZATION_VER", "1")
       buildConfigField("Integer", "FIELDS_CACHE_SIZE", "10")
-      buildConfigField("Integer", "MAX_DISK_CACHE_PRUNES_PER_PASS", "3")
+      buildConfigField("Integer", "MAX_DISK_CACHE_PRUNES_PER_PASS", "64")
       buildConfigField("Integer", "MAX_DISK_CACHE_LOCK_MAP_SIZE", "64")
       buildConfigField("String", "DISK_CACHE_FILENAME_FORMAT", "\"CACHE_%s\"")
     }
