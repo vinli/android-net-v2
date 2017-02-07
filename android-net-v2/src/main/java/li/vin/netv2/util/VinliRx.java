@@ -1473,7 +1473,8 @@ public final class VinliRx {
     return cachify(k, listType, 0, SECONDS, SINCE_CREATED, true, caches);
   }
 
-  public static final class CacheCompositionBuilder<T> {
+  public static final class CacheCompositionBuilder<T>
+      implements DeepCopyable<CacheCompositionBuilder<T>> {
 
     public static <T> CacheCompositionBuilder<T> newBuilder() {
       return newBuilder(null);
@@ -1496,6 +1497,16 @@ public final class VinliRx {
     RxCache[] caches;
     int shareLinger = -1;
     TimeUnit shareLingerUnit;
+
+    @NonNull
+    public CacheCompositionBuilder<T> copy() {
+      return new CacheCompositionBuilder<T>() //
+          .key(k)
+          .listType(listType)
+          .maxAge(maxAge, maxAgeUnit, ageSince)
+          .caches(copyOf(caches, caches.length))
+          .shareLinger(shareLinger, shareLingerUnit);
+    }
 
     public CacheCompositionBuilder<T> key(@NonNull String k) {
       this.k = k;
