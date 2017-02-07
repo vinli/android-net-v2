@@ -544,11 +544,16 @@ public final class VinliRx {
   }
 
   /**
-   * Simple cache file naming func. This simply replaces out any characters that aren't valid in
-   * a filename with an underscore (_). Care should be taken when using this approach not to
-   * generate accidental filename collisions by choosing keys that are too short and, with invalid
-   * characters replaced by underscores, might be identical. Keys greater than 64 chars in length
-   * are truncated. Null or empty keys are replaced with randomly generated UUIDs.
+   * Simple cache key naming func. This simply replaces out any characters that aren't valid in a
+   * filename with an underscore (_). Care should be taken when using this approach not to generate
+   * accidental name collisions by choosing keys that are too short and, with certain characters
+   * replaced by underscores, might be identical. Keys greater than 64 chars in length are
+   * truncated. Null or empty keys are replaced with randomly generated UUIDs.
+   * <br/><br/>
+   * The regex used to filter out invalid filename characters is:
+   * <pre><code>
+   * replaceAll("\\W+", "_")
+   * </code></pre>
    */
   public static Func1<String, String> simpleCacheKeyNamer() {
     return new Func1<String, String>() {
