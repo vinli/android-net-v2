@@ -550,7 +550,7 @@ public final class VinliRx {
    * characters replaced by underscores, might be identical. Keys greater than 64 chars in length
    * are truncated. Null or empty keys are replaced with randomly generated UUIDs.
    */
-  public static Func1<String, String> simpleCacheFileNamer() {
+  public static Func1<String, String> simpleCacheKeyNamer() {
     return new Func1<String, String>() {
       @Override
       public String call(String k) {
@@ -605,6 +605,12 @@ public final class VinliRx {
    * written are designed to be safely {@link Serializable}. Boilerplate Java serialization should
    * generally be considered a last resort; use this only for simple built-in types where
    * versioning and backwards-compatibility are not important.
+   * <br/><br/>
+   * Before using {@link Serializable},
+   * please carefully read its documentation. In order for a class to be safely serializable it
+   * must conform to a number of requirements.
+   *
+   * @see Serializable
    */
   public static Action3<Object, Type, OutputStream> serializableDiskCacheWriter() {
     return new Action3<Object, Type, OutputStream>() {
@@ -632,6 +638,12 @@ public final class VinliRx {
    * written are designed to be safely {@link Serializable}. Boilerplate Java serialization should
    * generally be considered a last resort; use this only for simple built-in types where
    * versioning and backwards-compatibility are not important.
+   * <br/><br/>
+   * Before using {@link Serializable},
+   * please carefully read its documentation. In order for a class to be safely serializable it
+   * must conform to a number of requirements.
+   *
+   * @see Serializable
    */
   public static Func2<Type, InputStream, Object> serializableDiskCacheReader() {
     return new Func2<Type, InputStream, Object>() {
@@ -691,6 +703,55 @@ public final class VinliRx {
     return result;
   }
 
+  /** @see #prefsCache(long, Func0, Action3, Func2, Func1) */
+  public static final class PrefsCacheBuilder {
+
+    public static PrefsCacheBuilder newBuilder() {
+      return new PrefsCacheBuilder();
+    }
+
+    private PrefsCacheBuilder() {
+    }
+
+    long maxEntries = Long.MAX_VALUE;
+    Func0<SharedPreferences> prefsFactory;
+    Action3<Object, Type, OutputStream> writerFunc;
+    Func2<Type, InputStream, Object> readerFunc;
+    Func1<String, String> keyNamingFunc;
+
+    public PrefsCacheBuilder maxEntries(long maxEntries) {
+      this.maxEntries = maxEntries;
+      return this;
+    }
+
+    public PrefsCacheBuilder prefsFactory(@NonNull Func0<SharedPreferences> prefsFactory) {
+      this.prefsFactory = prefsFactory;
+      return this;
+    }
+
+    public PrefsCacheBuilder writerFunc(@NonNull Action3<Object, Type, OutputStream> writerFunc) {
+      this.writerFunc = writerFunc;
+      return this;
+    }
+
+    public PrefsCacheBuilder readerFunc(@NonNull Func2<Type, InputStream, Object> readerFunc) {
+      this.readerFunc = readerFunc;
+      return this;
+    }
+
+    public PrefsCacheBuilder keyNamingFunc(@NonNull Func1<String, String> keyNamingFunc) {
+      this.keyNamingFunc = keyNamingFunc;
+      return this;
+    }
+
+    public RxCache build() {
+      if (prefsFactory == null) throw new IllegalArgumentException("prefsFactory required.");
+      if (writerFunc == null) throw new IllegalArgumentException("writerFunc required.");
+      if (readerFunc == null) throw new IllegalArgumentException("readerFunc required.");
+      return prefsCache(maxEntries, prefsFactory, writerFunc, readerFunc, keyNamingFunc);
+    }
+  }
+
   /**
    * Create an instance of {@link RxCache} backed by {@link SharedPreferences}. The cache will work
    * to keep itself within the given size (number of entries), but this is not a guarantee. Prune
@@ -716,15 +777,15 @@ public final class VinliRx {
    * This cache operates on {@link Schedulers#io()}.
    */
   public static RxCache prefsCache( //
-      final long size, //
+      final long maxEntries, //
       @NonNull final Func0<SharedPreferences> prefsFactory, //
       @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
       @NonNull final Func2<Type, InputStream, Object> readerFunc, //
-      @Nullable Func1<String, String> fileNamingFunc //
+      @Nullable Func1<String, String> keyNamingFunc //
   ) {
-    final Func1<String, String> namer = fileNamingFunc == null
-        ? simpleCacheFileNamer()
-        : fileNamingFunc;
+    final Func1<String, String> namer = keyNamingFunc == null
+        ? simpleCacheKeyNamer()
+        : keyNamingFunc;
     return new RxCache() {
 
       final Lazy<SharedPreferences> prefs = Lazy.create(prefsFactory);
@@ -746,9 +807,9 @@ public final class VinliRx {
 
             try {
               Map<String, ?> all = prefs.get().getAll();
-              if (all.size() <= size) return;
+              if (all.size() <= maxEntries) return;
 
-              if (all.size() < size * 2) {
+              if (all.size() < maxEntries * 2) {
                 // don't defer until idle if the cache is twice its desired size ...
                 if (nanoTime() - lastUsageNano < SECONDS.toNanos(5)) {
                   // ... otherwise, wait until the cache is idle to prune it
@@ -779,7 +840,7 @@ public final class VinliRx {
 
               ed = prefs.get().edit();
               for (Iterator<Pair<String, Long>> i = items.iterator();
-                  i.hasNext() && items.size() > size; ) {
+                  i.hasNext() && items.size() > maxEntries; ) {
                 String k = i.next().first;
                 ed.remove(k).remove(format("%s_accessed", k)).remove(format("%s_created", k));
                 i.remove();
@@ -935,11 +996,68 @@ public final class VinliRx {
     };
   }
 
+  /** @see #diskLruCache(long, File, int, Action3, Func2, Func1) */
+  @SuppressWarnings("PointlessArithmeticExpression")
+  public static final class DiskLruCacheBuilder {
+
+    public static DiskLruCacheBuilder newBuilder() {
+      return new DiskLruCacheBuilder();
+    }
+
+    private DiskLruCacheBuilder() {
+    }
+
+    long maxSizeBytes = 1L * 1024L * 1024L; // 1 mebibyte
+    int appVersion = 1;
+    File cacheDir;
+    Action3<Object, Type, OutputStream> writerFunc;
+    Func2<Type, InputStream, Object> readerFunc;
+    Func1<String, String> keyNamingFunc;
+
+    public DiskLruCacheBuilder maxSizeBytes(long maxSizeBytes) {
+      this.maxSizeBytes = maxSizeBytes;
+      return this;
+    }
+
+    public DiskLruCacheBuilder appVersion(int appVersion) {
+      this.appVersion = appVersion;
+      return this;
+    }
+
+    public DiskLruCacheBuilder cacheDir(File cacheDir) {
+      this.cacheDir = cacheDir;
+      return this;
+    }
+
+    public DiskLruCacheBuilder writerFunc(@NonNull Action3<Object, Type, OutputStream> writerFunc) {
+      this.writerFunc = writerFunc;
+      return this;
+    }
+
+    public DiskLruCacheBuilder readerFunc(@NonNull Func2<Type, InputStream, Object> readerFunc) {
+      this.readerFunc = readerFunc;
+      return this;
+    }
+
+    public DiskLruCacheBuilder keyNamingFunc(@NonNull Func1<String, String> keyNamingFunc) {
+      this.keyNamingFunc = keyNamingFunc;
+      return this;
+    }
+
+    public RxCache build() {
+      if (maxSizeBytes <= 0L) throw new IllegalArgumentException("maxSizeBytes > 0 required.");
+      if (cacheDir == null) throw new IllegalArgumentException("cacheDir required.");
+      if (writerFunc == null) throw new IllegalArgumentException("writerFunc required.");
+      if (readerFunc == null) throw new IllegalArgumentException("readerFunc required.");
+      return diskLruCache(maxSizeBytes, cacheDir, appVersion, writerFunc, readerFunc,
+          keyNamingFunc);
+    }
+  }
+
   /**
    * Create an instance of {@link RxCache} backed by {@link DiskLruCache}. The cache will work to
    * keep itself within the given size (bytes), but as documented by {@link DiskLruCache}, this is
-   * a weak guarantee. The appVersion parameter versions the entire cache, and if modified between
-   * usages, will effectively wipe out all preexisting entries.
+   * a weak guarantee.
    * <br/><br/>
    * Note that the instance returned by this method should be shared amongst clients, NOT created
    * multiple times, and it is an error to use the cacheDir given to this cache for any purpose
@@ -960,11 +1078,11 @@ public final class VinliRx {
       final int appVersion, //
       @NonNull final Action3<Object, Type, OutputStream> writerFunc, //
       @NonNull final Func2<Type, InputStream, Object> readerFunc, //
-      @Nullable Func1<String, String> fileNamingFunc //
+      @Nullable Func1<String, String> keyNamingFunc //
   ) {
-    final Func1<String, String> namer = fileNamingFunc == null
-        ? simpleCacheFileNamer()
-        : fileNamingFunc;
+    final Func1<String, String> namer = keyNamingFunc == null
+        ? simpleCacheKeyNamer()
+        : keyNamingFunc;
     return new RxCache() {
 
       final Lazy<DiskLruCache> cache = Lazy.create(new Func0<DiskLruCache>() {
@@ -1092,6 +1210,7 @@ public final class VinliRx {
         }
       }
 
+      @SuppressWarnings("ConstantConditions")
       @Nullable
       @Override
       public Object get(@NonNull String k, @NonNull Type t, int maxAge, TimeUnit maxAgeUnit,
@@ -1210,6 +1329,11 @@ public final class VinliRx {
       this.creationTime = this.accessTime = nanoTime();
       this.val = val;
     }
+  }
+
+  /** @see #memCache(int, Func2) */
+  public static RxCache memCache(final int size) {
+    return memCache(size, null);
   }
 
   /**
@@ -1342,6 +1466,93 @@ public final class VinliRx {
       @NonNull final String k, @NonNull final Type listType, //
       @NonNull final RxCache... caches) {
     return cachify(k, listType, 0, SECONDS, SINCE_CREATED, true, caches);
+  }
+
+  public static final class CacheComposition {
+
+    public static CacheComposition newComposition() {
+      return new CacheComposition(null, null, 0, SECONDS, SINCE_CREATED, null, -1, null);
+    }
+
+    private CacheComposition(String k, Type listType, int maxAge, TimeUnit maxAgeUnit,
+        AgeSince ageSince, RxCache[] caches, int shareLinger, TimeUnit shareLingerUnit) {
+      this.k = k;
+      this.listType = listType;
+      this.maxAge = maxAge;
+      this.maxAgeUnit = maxAgeUnit;
+      this.ageSince = ageSince;
+      this.caches = caches;
+      this.shareLinger = shareLinger;
+      this.shareLingerUnit = shareLingerUnit;
+    }
+
+    final String k;
+    final Type listType;
+    final int maxAge;
+    final TimeUnit maxAgeUnit;
+    final AgeSince ageSince;
+    final RxCache[] caches;
+    final int shareLinger;
+    final TimeUnit shareLingerUnit;
+
+    public CacheComposition key(@NonNull String k) {
+      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
+          shareLingerUnit);
+    }
+
+    public <T extends List> CacheComposition captureListType() {
+      return new CacheComposition(k, new TypeToken<T>() {
+      }.getType(), maxAge, maxAgeUnit, ageSince, caches, shareLinger, shareLingerUnit);
+    }
+
+    public CacheComposition listType(@NonNull Type t) {
+      return new CacheComposition(k, t, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
+          shareLingerUnit);
+    }
+
+    public CacheComposition maxAge(int maxAge, @NonNull TimeUnit maxAgeUnit,
+        @NonNull AgeSince ageSince) {
+      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
+          shareLingerUnit);
+    }
+
+    public CacheComposition caches(@NonNull RxCache... caches) {
+      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
+          shareLingerUnit);
+    }
+
+    public CacheComposition share() {
+      if (shareLingerUnit != null) return this;
+      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
+          SECONDS);
+    }
+
+    public CacheComposition shareLinger(int linger, @NonNull TimeUnit lingerUnit) {
+      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, linger,
+          lingerUnit);
+    }
+
+    public <T> Observable.Transformer<T, T> transformer() {
+      if (k == null) throw new IllegalArgumentException("key required");
+      if (listType == null) throw new IllegalArgumentException("listType required");
+      if (maxAgeUnit == null || ageSince == null) {
+        throw new IllegalArgumentException("age criteria required");
+      }
+      if (caches == null || caches.length == 0) {
+        throw new IllegalArgumentException("caches required");
+      }
+      if (shareLingerUnit != null) {
+        return new Observable.Transformer<T, T>() {
+          @Override
+          public Observable<T> call(Observable<T> o) {
+            return o //
+                .compose(VinliRx.<T>cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches))
+                .compose(VinliRx.<T>shareify(k, shareLinger, shareLingerUnit));
+          }
+        };
+      }
+      return cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches);
+    }
   }
 
   /**
