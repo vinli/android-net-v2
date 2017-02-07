@@ -126,8 +126,8 @@ dependencies {
 
   // util
 
-  compile 'com.android.support:appcompat-v7:25.1.0'
-  provided 'com.android.support:support-annotations:25.1.0'
+  compile 'com.android.support:appcompat-v7:25.1.1'
+  provided 'com.android.support:support-annotations:25.1.1'
 
   // net
 
