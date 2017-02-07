@@ -1473,71 +1473,65 @@ public final class VinliRx {
     return cachify(k, listType, 0, SECONDS, SINCE_CREATED, true, caches);
   }
 
-  public static final class CacheComposition {
+  public static final class CacheCompositionBuilder<T> {
 
-    public static CacheComposition newComposition() {
-      return new CacheComposition(null, null, 0, SECONDS, SINCE_CREATED, null, -1, null);
+    public static <T> CacheCompositionBuilder<T> newBuilder() {
+      return newBuilder(null);
     }
 
-    private CacheComposition(String k, Type listType, int maxAge, TimeUnit maxAgeUnit,
-        AgeSince ageSince, RxCache[] caches, int shareLinger, TimeUnit shareLingerUnit) {
+    public static <T> CacheCompositionBuilder<T> newBuilder(
+        @SuppressWarnings("UnusedParameters") Class<T> cls) {
+      return new CacheCompositionBuilder<T>().listType(new TypeToken<List<T>>() {
+      }.getType());
+    }
+
+    private CacheCompositionBuilder() {
+    }
+
+    String k;
+    Type listType;
+    int maxAge = 0;
+    TimeUnit maxAgeUnit = SECONDS;
+    AgeSince ageSince = SINCE_CREATED;
+    RxCache[] caches;
+    int shareLinger = -1;
+    TimeUnit shareLingerUnit;
+
+    public CacheCompositionBuilder<T> key(@NonNull String k) {
       this.k = k;
-      this.listType = listType;
+      return this;
+    }
+
+    CacheCompositionBuilder<T> listType(@NonNull Type t) {
+      this.listType = t;
+      return this;
+    }
+
+    public CacheCompositionBuilder<T> maxAge(int maxAge, @NonNull TimeUnit maxAgeUnit,
+        @NonNull AgeSince ageSince) {
       this.maxAge = maxAge;
       this.maxAgeUnit = maxAgeUnit;
-      this.ageSince = ageSince;
+      return this;
+    }
+
+    public CacheCompositionBuilder<T> caches(@NonNull RxCache... caches) {
       this.caches = caches;
-      this.shareLinger = shareLinger;
-      this.shareLingerUnit = shareLingerUnit;
+      return this;
     }
 
-    final String k;
-    final Type listType;
-    final int maxAge;
-    final TimeUnit maxAgeUnit;
-    final AgeSince ageSince;
-    final RxCache[] caches;
-    final int shareLinger;
-    final TimeUnit shareLingerUnit;
-
-    public CacheComposition key(@NonNull String k) {
-      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
-          shareLingerUnit);
-    }
-
-    public <T extends List> CacheComposition captureListType() {
-      return new CacheComposition(k, new TypeToken<T>() {
-      }.getType(), maxAge, maxAgeUnit, ageSince, caches, shareLinger, shareLingerUnit);
-    }
-
-    public CacheComposition listType(@NonNull Type t) {
-      return new CacheComposition(k, t, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
-          shareLingerUnit);
-    }
-
-    public CacheComposition maxAge(int maxAge, @NonNull TimeUnit maxAgeUnit,
-        @NonNull AgeSince ageSince) {
-      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
-          shareLingerUnit);
-    }
-
-    public CacheComposition caches(@NonNull RxCache... caches) {
-      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
-          shareLingerUnit);
-    }
-
-    public CacheComposition share() {
+    public CacheCompositionBuilder<T> share() {
       if (shareLingerUnit != null) return this;
-      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, shareLinger,
-          SECONDS);
+      this.shareLingerUnit = SECONDS;
+      return this;
     }
 
-    public CacheComposition shareLinger(int linger, @NonNull TimeUnit lingerUnit) {
-      return new CacheComposition(k, listType, maxAge, maxAgeUnit, ageSince, caches, linger,
-          lingerUnit);
+    public CacheCompositionBuilder<T> shareLinger(int linger, @NonNull TimeUnit lingerUnit) {
+      this.shareLinger = linger;
+      this.shareLingerUnit = lingerUnit;
+      return this;
     }
 
-    public <T> Observable.Transformer<T, T> transformer() {
+    public Observable.Transformer<T, T> build() {
       if (k == null) throw new IllegalArgumentException("key required");
       if (listType == null) throw new IllegalArgumentException("listType required");
       if (maxAgeUnit == null || ageSince == null) {
@@ -1546,17 +1540,17 @@ public final class VinliRx {
       if (caches == null || caches.length == 0) {
         throw new IllegalArgumentException("caches required");
       }
-      if (shareLingerUnit != null) {
-        return new Observable.Transformer<T, T>() {
-          @Override
-          public Observable<T> call(Observable<T> o) {
-            return o //
-                .compose(VinliRx.<T>cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches))
-                .compose(VinliRx.<T>shareify(k, shareLinger, shareLingerUnit));
-          }
-        };
+      if (shareLingerUnit == null) {
+        return cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches);
       }
-      return cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches);
+      return new Observable.Transformer<T, T>() {
+        @Override
+        public Observable<T> call(Observable<T> o) {
+          return o //
+              .compose(VinliRx.<T>cachify(k, listType, maxAge, maxAgeUnit, ageSince, caches))
+              .compose(VinliRx.<T>shareify(k, shareLinger, shareLingerUnit));
+        }
+      };
     }
   }
 
