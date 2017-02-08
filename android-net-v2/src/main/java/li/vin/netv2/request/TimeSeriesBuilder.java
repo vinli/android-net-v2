@@ -13,6 +13,7 @@ import static java.lang.String.format;
 import static li.vin.netv2.model.Link.NO_LINK;
 import static li.vin.netv2.model.SortDir.ASCENDING;
 import static li.vin.netv2.model.SortDir.DESCENDING;
+import static li.vin.netv2.request.RequestPkgHooks.isoDateFormat;
 
 // TODO - volatile fields and yet not threadsafe; validate is called while fields are mutating???
 public final class TimeSeriesBuilder<T extends StrictModel, MT extends ModelTimeSeries<T>>
@@ -61,8 +62,18 @@ public final class TimeSeriesBuilder<T extends StrictModel, MT extends ModelTime
     return this;
   }
 
+  public TimeSeriesBuilder<T, MT> since(@NonNull String since) {
+    this.since = isoDateFormat.get().time(since);
+    return this;
+  }
+
   public TimeSeriesBuilder<T, MT> since(long since) {
     this.since = since;
+    return this;
+  }
+
+  public TimeSeriesBuilder<T, MT> until(@NonNull String until) {
+    this.until = isoDateFormat.get().time(until);
     return this;
   }
 

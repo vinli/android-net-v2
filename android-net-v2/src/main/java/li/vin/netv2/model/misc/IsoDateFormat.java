@@ -1,9 +1,12 @@
 package li.vin.netv2.model.misc;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
 import li.vin.netv2.Vinli;
+import li.vin.netv2.request.RequestPkgHooks;
 import li.vin.netv2.util.LazyOrSet;
 import rx.functions.Func0;
 
@@ -30,11 +33,25 @@ public class IsoDateFormat {
     hooks.isoDateFormatHook = inst.get();
   }
 
+  public static void provideInst(RequestPkgHooks hooks) {
+    hooks.isoDateFormatHook = inst.get();
+  }
+
   // default impl
 
   @NonNull
   public SimpleDateFormat get() {
     return dtFmtThrLocal.get();
+  }
+
+  @Nullable
+  public Long time(@Nullable String s) {
+    if (s == null) return null;
+    try {
+      return get().parse(s).getTime();
+    } catch (ParseException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private final ThreadLocal<SimpleDateFormat> dtFmtThrLocal = new ThreadLocal<SimpleDateFormat>() {

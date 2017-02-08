@@ -27,10 +27,10 @@ import li.vin.netv2.model.RuleSeed;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
 import li.vin.netv2.model.Vehicle;
+import li.vin.netv2.model.misc.IsoDateFormat;
 import li.vin.netv2.util.DeepCopyable;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor.Level;
-import rx.Observable;
 import rx.functions.Func1;
 
 import static android.text.TextUtils.getTrimmedLength;
@@ -39,6 +39,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static li.vin.netv2.internal.CachedHttpClients.ClientAndServices;
 import static li.vin.netv2.internal.CachedHttpClients.ClientCacheKey;
 import static li.vin.netv2.request.RequestPkgHooks.cachedHttpClients;
+import static li.vin.netv2.request.RequestPkgHooks.isoDateFormat;
 
 /**
  * The entry point for all interaction with the Vinli Net SDK - create a {@link Builder} with
@@ -620,7 +621,15 @@ public final class VinliRequest {
     @NonNull
     public ForIdBuilder< //
         WrapperBuilder<OverallReportCard, OverallReportCard>> getOverallReportCard() {
-      return getOverallReportCardSinceUntil(null, null);
+      return getOverallReportCardSinceUntil((Long) null, null);
+    }
+
+    /** @see #getOverallReportCardSince(Long) */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<OverallReportCard, OverallReportCard>> getOverallReportCardSince(
+        @Nullable String since) {
+      return getOverallReportCardSinceUntil(isoDateFormat.get().time(since), null);
     }
 
     /**
@@ -636,6 +645,15 @@ public final class VinliRequest {
         WrapperBuilder<OverallReportCard, OverallReportCard>> getOverallReportCardSince(
         @Nullable Long since) {
       return getOverallReportCardSinceUntil(since, null);
+    }
+
+    /** @see #getOverallReportCardSinceUntil(Long, Long) */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<OverallReportCard, OverallReportCard>> getOverallReportCardSinceUntil(
+        @Nullable String since, @Nullable String until) {
+      IsoDateFormat idf = isoDateFormat.get();
+      return getOverallReportCardSinceUntil(idf.time(since), idf.time(until));
     }
 
     /**

@@ -3,6 +3,7 @@ package li.vin.netv2.request;
 import li.vin.netv2.internal.CachedHttpClients;
 import li.vin.netv2.model.DtcDiagnosis;
 import li.vin.netv2.model.RuleSeed;
+import li.vin.netv2.model.misc.IsoDateFormat;
 import li.vin.netv2.util.Lazy;
 import rx.functions.Func0;
 
@@ -20,6 +21,18 @@ public final class RequestPkgHooks {
           RequestPkgHooks hooks = new RequestPkgHooks();
           CachedHttpClients.provideInst(hooks);
           return hooks.cachedHttpClientsHook;
+        }
+      });
+
+  public IsoDateFormat isoDateFormatHook;
+
+  static final Lazy<IsoDateFormat> isoDateFormat = //
+      Lazy.create(new Func0<IsoDateFormat>() {
+        @Override
+        public IsoDateFormat call() {
+          RequestPkgHooks hooks = new RequestPkgHooks();
+          IsoDateFormat.provideInst(hooks);
+          return hooks.isoDateFormatHook;
         }
       });
 

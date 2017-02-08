@@ -13,8 +13,8 @@ import rx.Observable;
 public interface ReportCards {
 
   @GET("devices/{deviceId}/report_cards")
-  Observable<ReportCard.TimeSeries> reportCardsForDevice(@NonNull @Path("deviceId") String deviceId,
-      //
+  Observable<ReportCard.TimeSeries> reportCardsForDevice( //
+      @NonNull @Path("deviceId") String deviceId, //
       @Nullable @Query("since") Long since, //
       @Nullable @Query("until") Long until,  //
       @Nullable @Query("limit") Integer limit, //
