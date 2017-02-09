@@ -35,6 +35,6 @@ dependencies {
   compile 'com.android.support:appcompat-v7:25.1.1'
   testCompile 'junit:junit:4.12'
   compile project(':android-net-v2')
-  compile 'li.vin:android-net-v2-auth:2.0.0.alpha1'
+//  compile 'li.vin:android-net-v2-auth:2.0.0.alpha1'
   compile 'io.reactivex:rxandroid:1.2.1'
 }
