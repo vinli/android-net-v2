@@ -33,6 +33,7 @@ import li.vin.netv2.model.OdometerTrigger;
 import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
+import li.vin.netv2.model.Snapshot;
 import li.vin.netv2.model.SortDir;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
@@ -678,6 +679,18 @@ public class AllTests {
         sanityCheckModel(msg, Message.class, b, false);
         assertNotNull(msg.data());
         assertNotNull(msg.timestamp());
+      }
+    };
+  }
+
+  private static Action1<Snapshot> checkSnapshotAction(@NonNull final Builder b) {
+    return new Action1<Snapshot>() {
+      @Override
+      public void call(Snapshot snapshot) {
+        sanityCheckModel(snapshot, Snapshot.class, b, false);
+        assertNotNull(snapshot.timestamp());
+        assertNotNull(snapshot.data());
+        assertNotNull(snapshot.selfLink());
       }
     };
   }
@@ -1495,8 +1508,10 @@ public class AllTests {
     baseBuilder("dev") //
         .logLevel(HttpLoggingInterceptor.Level.BODY) //
         .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
-        .createOdometerTrigger(OdometerTriggerSeed.create().threshold(20000.0).unit(Unit.MILES.toString()).type(
-            OdometerTrigger.TriggerType.SPECIFIC.toString()))
+        .createOdometerTrigger(OdometerTriggerSeed.create()
+            .threshold(20000.0)
+            .unit(Unit.MILES.toString())
+            .type(OdometerTrigger.TriggerType.SPECIFIC.toString()))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
         .observeExtractedWithBaseBuilder()
@@ -1504,9 +1519,8 @@ public class AllTests {
         .flatMap(new Func1<Pair<OdometerTrigger, Builder>, Observable<?>>() {
           @Override
           public Observable<?> call(Pair<OdometerTrigger, Builder> odometerTriggerBuilderPair) {
-            return odometerTriggerBuilderPair.second.deleteOdometerTrigger(odometerTriggerBuilderPair.first.id())
-                .build()
-                .observe();
+            return odometerTriggerBuilderPair.second.deleteOdometerTrigger(
+                odometerTriggerBuilderPair.first.id()).build().observe();
           }
         })
         .doOnNext(simplePrintAction(System.err, "... Odometer Trigger deleted!"))
@@ -1514,4 +1528,21 @@ public class AllTests {
         .subscribe(AllTests.testSub());
   }
 
+  @Test
+  public void testGetSnapshotsVehicle() {
+    sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(VehicleBuilderPair pair) {
+        Observable<Snapshot.TimeSeries> o1 = pair.second.getSnapshots("rpm")
+            .forId(VEHICLE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkTmSerAction(1, DESCENDING))
+            .flatMap(VinliRx.<Snapshot>flattenTimeSeries())
+            .doOnNext(checkSnapshotAction(pair.second));
+      }
+    }).toBlocking().subscribe(testSub());
+  }
 }

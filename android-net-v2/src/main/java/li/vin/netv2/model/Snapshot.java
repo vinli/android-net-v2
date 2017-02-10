@@ -1,12 +1,10 @@
 package li.vin.netv2.model;
 
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import li.vin.netv2.model.misc.StrictValidations.OptDouble;
 import li.vin.netv2.model.misc.StrictValidations.ReqIsoDate;
 import li.vin.netv2.model.misc.StrictValidations.ReqLink;
 
@@ -18,15 +16,11 @@ public class Snapshot extends BaseModels.BaseModelId {
   }
 
   @ReqIsoDate String timestamp;
-
+  Map data;
   @ReqLink({
       "self"
   }) Map links;
 
-  @OptDouble({
-      "vehicleSpeed", //
-      "rpm"
-  }) Map data;
 
   @NonNull
   public String timestamp() {
@@ -34,19 +28,10 @@ public class Snapshot extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  Data data() {
+  public Data data() {
     return Data.create(data);
   }
 
-  @Nullable
-  Double vehicleSpeed() {
-    return maps.get().getDblNullable(data, "vehicleSpeed");
-  }
-
-  @Nullable
-  Double rpm() {
-    return maps.get().getDblNullable(data, "rpm");
-  }
 
   @NonNull
   public Link<Wrapper> selfLink() {

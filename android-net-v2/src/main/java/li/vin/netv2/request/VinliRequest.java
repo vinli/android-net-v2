@@ -28,6 +28,7 @@ import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
 import li.vin.netv2.model.RuleSeed;
+import li.vin.netv2.model.Snapshot;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
 import li.vin.netv2.model.Vehicle;
@@ -429,8 +430,8 @@ public final class VinliRequest {
     /** Create a new {@link Odometer}. Require or {@link ForId#VEHICLE}. */
     @NonNull
     public ForIdBuilder< //
-        WrapperBuilder<Odometer, Odometer.Wrapper>> createOdometer(@NonNull
-        OdometerSeed odometerSeed) {
+        WrapperBuilder<Odometer, Odometer.Wrapper>> createOdometer(
+        @NonNull OdometerSeed odometerSeed) {
       return new ForIdBuilder<>(RequestFactories.inst.get() //
           .odometerCreateWrapperBuilder(this, validateAndGetClient(), odometerSeed));
     }
@@ -464,8 +465,8 @@ public final class VinliRequest {
     /** Create a new {@link OdometerTrigger}. Require or {@link ForId#VEHICLE}. */
     @NonNull
     public ForIdBuilder< //
-        WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper>> createOdometerTrigger(@NonNull
-        OdometerTriggerSeed odometerTriggerSeed) {
+        WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper>> createOdometerTrigger(
+        @NonNull OdometerTriggerSeed odometerTriggerSeed) {
       return new ForIdBuilder<>(RequestFactories.inst.get().odometerTriggerCreateWrapperBuilder( //
           this, validateAndGetClient(), odometerTriggerSeed));
     }
@@ -473,7 +474,8 @@ public final class VinliRequest {
     /** Delete a {@link Odometer} by id. */
     @NonNull
     public ItemBuilder<Void> deleteOdometerTrigger(@NonNull String id) {
-      return RequestFactories.inst.get().odometerTriggerDeleteItemBuilder(this, validateAndGetClient()) //
+      return RequestFactories.inst.get()
+          .odometerTriggerDeleteItemBuilder(this, validateAndGetClient()) //
           .id(id);
     }
 
@@ -607,6 +609,17 @@ public final class VinliRequest {
     @NonNull
     public WrapperBuilder<Message, Message.Wrapper> getMessage(@NonNull String id) {
       return RequestFactories.inst.get().messageWrapperBuilder(this, validateAndGetClient()).id(id);
+    }
+
+    /**
+     * Get {@link Snapshot.TimeSeries} for a device or vehicle. Requires {@link ForId#DEVICE} or
+     * {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<Snapshot, Snapshot.TimeSeries>> getSnapshots(@NonNull String fields) {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().snapshotsTimeSeriesBuilder(this,validateAndGetClient(), fields)); //
     }
 
     /**
