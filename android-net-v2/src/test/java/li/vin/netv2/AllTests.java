@@ -28,7 +28,9 @@ import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
 import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerSeed;
 import li.vin.netv2.model.OdometerTrigger;
+import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.SortDir;
@@ -47,6 +49,7 @@ import li.vin.netv2.util.VinliRx;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -601,7 +604,7 @@ public class AllTests {
         assertNotNull(odometer.vehicleId());
         assertTrue(odometer.reading() >= 0f);
         assertFalse(odometer.unit().equals(Unit.UNKNOWN));
-        assertNotNull(odometer.timestamp());
+        assertNotNull(odometer.date());
       }
     };
   }
@@ -612,9 +615,9 @@ public class AllTests {
       public void call(OdometerTrigger odometerTrigger) {
         sanityCheckModel(odometerTrigger, OdometerTrigger.class, b, false);
         assertNotNull(odometerTrigger.vehicleId());
-        assertTrue(odometerTrigger.threshhold()>= 0f);
+        assertTrue(odometerTrigger.threshhold() >= 0f);
         assertNotNull(odometerTrigger.unit());
-        assertTrue(odometerTrigger.events()>= 0f);
+        assertTrue(odometerTrigger.events() >= 0f);
         assertNotNull(odometerTrigger.type());
       }
     };
@@ -1334,7 +1337,7 @@ public class AllTests {
   //          //    .radius(100) //
   //          //    .lat(32.7767) //
   //          //    .lon(96.7970)) //
-  //          .boundary(PolygonBoundary.create() //
+  //          .boundary(RuleSeed.PolygonBoundary.create() //
   //              .newPolygon() //
   //              .addCoord(new double[] { 32.833765, -96.702414 }) // 1
   //              .addCoord(new double[] { 32.823091, -96.714859 }) // 2
@@ -1444,7 +1447,29 @@ public class AllTests {
             .doOnNext(checkOdometerAction(pair.second));
       }
     }).toBlocking().subscribe(testSub());
+  }
 
+  @Test
+  public void testCreateOdometers() {
+    baseBuilder("dev") //
+        .logLevel(HttpLoggingInterceptor.Level.BODY) //
+        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .createOdometer(OdometerSeed.create().reading(12345.0).unit(Unit.MILES.toString()))
+        .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Odometer created..."))
+        .flatMap(new Func1<Pair<Odometer, Builder>, Observable<?>>() {
+          @Override
+          public Observable<?> call(Pair<Odometer, Builder> odometerBuilderPair) {
+            return odometerBuilderPair.second.deleteOdometer(odometerBuilderPair.first.id())
+                .build()
+                .observe();
+          }
+        })
+        .doOnNext(simplePrintAction(System.err, "... odometer deleted!"))
+        .toBlocking()
+        .subscribe(AllTests.testSub());
   }
 
   @Test
@@ -1463,6 +1488,30 @@ public class AllTests {
             .doOnNext(checkOdometerTriggerAction(pair.second));
       }
     }).toBlocking().subscribe(testSub());
-
   }
+
+  @Test
+  public void testCreateOdometerTrigger() {
+    baseBuilder("dev") //
+        .logLevel(HttpLoggingInterceptor.Level.BODY) //
+        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .createOdometerTrigger(OdometerTriggerSeed.create().threshold(20000.0).unit(Unit.MILES.toString()).type(
+            OdometerTrigger.TriggerType.SPECIFIC.toString()))
+        .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Odometer Trigger created..."))
+        .flatMap(new Func1<Pair<OdometerTrigger, Builder>, Observable<?>>() {
+          @Override
+          public Observable<?> call(Pair<OdometerTrigger, Builder> odometerTriggerBuilderPair) {
+            return odometerTriggerBuilderPair.second.deleteOdometerTrigger(odometerTriggerBuilderPair.first.id())
+                .build()
+                .observe();
+          }
+        })
+        .doOnNext(simplePrintAction(System.err, "... Odometer Trigger deleted!"))
+        .toBlocking()
+        .subscribe(AllTests.testSub());
+  }
+
 }

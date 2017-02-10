@@ -25,8 +25,8 @@ public class Odometer extends BaseModels.BaseModelId {
 
   Double reading;
   String vehicleId;
-  Distance.Unit unit;
-  @ReqIsoDate String timestamp;
+  String unit;
+  @ReqIsoDate String date;
 
   @AllowNull //
   @OptIsoDate({ //
@@ -35,7 +35,7 @@ public class Odometer extends BaseModels.BaseModelId {
 
   @ReqLink({
       "self", //
-      "vehcle"
+      "vehicle"
   }) Map links;
 
   @NonNull
@@ -50,12 +50,12 @@ public class Odometer extends BaseModels.BaseModelId {
 
   @NonNull
   public Distance.Unit unit() {
-    return unit;
+    return Distance.Unit.fromString(unit);
   }
 
   @NonNull
-  public String timestamp() {
-    return timestamp;
+  public String date() {
+    return date;
   }
 
   @NonNull
@@ -77,7 +77,7 @@ public class Odometer extends BaseModels.BaseModelId {
 
     @Override
     List<Odometer> rawTimeSeriesContent() {
-      return null;
+      return odometers;
     }
 
     @NonNull

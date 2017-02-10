@@ -15,7 +15,7 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
     return new OdometerSeed(null, null, null);
   }
 
-  OdometerSeed(final Double reading, final String timestamp, final Distance.Unit unit) {
+  OdometerSeed(final Double reading, final String timestamp, final String unit) {
     this.reading = reading;
     this.timestamp = timestamp;
     this.unit = unit;
@@ -23,7 +23,7 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
 
   final Double reading;
   final String timestamp;
-  final Distance.Unit unit;
+  final String unit;
 
   public OdometerSeed reading(@NonNull Double reading) {
     return new OdometerSeed(reading, timestamp, unit);
@@ -33,7 +33,7 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
     return new OdometerSeed(reading, timestamp, unit);
   }
 
-  public OdometerSeed unit(@NonNull Distance.Unit unit) {
+  public OdometerSeed unit(@NonNull String unit) {
     return new OdometerSeed(reading, timestamp, unit);
   }
 
