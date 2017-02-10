@@ -16,7 +16,9 @@ import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
 import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerSeed;
 import li.vin.netv2.model.OdometerTrigger;
+import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
@@ -44,6 +46,8 @@ import static li.vin.netv2.request.ForId.SUBSCRIPTION;
 import static li.vin.netv2.request.ForId.TRIP;
 import static li.vin.netv2.request.ForId.VEHICLE;
 import static li.vin.netv2.request.RequestPkgHooks.dtcDiagWrapper;
+import static li.vin.netv2.request.RequestPkgHooks.odometerSeedWrapper;
+import static li.vin.netv2.request.RequestPkgHooks.odometerTriggerSeedWrapper;
 import static li.vin.netv2.request.RequestPkgHooks.ruleSeedWrapper;
 
 class RequestFactories {
@@ -235,6 +239,39 @@ class RequestFactories {
         }, EnumSet.noneOf(ForId.class));
   }
 
+  public WrapperBuilder<Odometer, Odometer.Wrapper> odometerCreateWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client,
+      @NonNull final OdometerSeed seed) {
+    return new WrapperBuilder<>(builder, new WrapperObservableFactory<Odometer, Odometer.Wrapper>() {
+      @NonNull
+      @Override
+      public Observable<Odometer.Wrapper> call(@NonNull WrapperBuilder<Odometer, Odometer.Wrapper> b) {
+        try {
+          seed.validate();
+        } catch (RuntimeException rte) {
+          return Observable.error(rte);
+        }
+        if (b.forIdVals != null && b.forIdVals.forId == VEHICLE) {
+          return client.distances.get().createOdometerReport( //
+              b.forIdVals.target, odometerSeedWrapper(seed));
+        }
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.of(VEHICLE));
+  }
+
+  public ItemBuilder<Void> odometerDeleteItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<Void>() {
+      @NonNull
+      @Override
+      public Observable<Void> call(@NonNull ItemBuilder<Void> b) {
+        if (b.id != null) return client.distances.get().deleteOdometerReport(b.id);
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
   public TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries> odometerTriggersTimeSeriesBuilder(
       //
       @NonNull Builder builder, @NonNull final ClientAndServices client) {
@@ -267,6 +304,39 @@ class RequestFactories {
             throw new RuntimeException("validations failed: this should never happen!");
           }
         }, EnumSet.noneOf(ForId.class));
+  }
+
+  public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> odometerTriggerCreateWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client,
+      @NonNull final OdometerTriggerSeed seed) {
+    return new WrapperBuilder<>(builder, new WrapperObservableFactory<OdometerTrigger, OdometerTrigger.Wrapper>() {
+      @NonNull
+      @Override
+      public Observable<OdometerTrigger.Wrapper> call(@NonNull WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> b) {
+        try {
+          seed.validate();
+        } catch (RuntimeException rte) {
+          return Observable.error(rte);
+        }
+        if (b.forIdVals != null && b.forIdVals.forId == VEHICLE) {
+          return client.distances.get().createOdometerTrigger( //
+              b.forIdVals.target, odometerTriggerSeedWrapper(seed));
+        }
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.of(VEHICLE));
+  }
+
+  public ItemBuilder<Void> odometerTriggerDeleteItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<Void>() {
+      @NonNull
+      @Override
+      public Observable<Void> call(@NonNull ItemBuilder<Void> b) {
+        if (b.id != null) return client.distances.get().deleteOdometerTrigger(b.id);
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.noneOf(ForId.class));
   }
 
   public TimeSeriesBuilder<Dtc, Dtc.TimeSeries> dtcsTimeSeriesBuilder( //

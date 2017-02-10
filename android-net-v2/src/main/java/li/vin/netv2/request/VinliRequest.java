@@ -21,7 +21,9 @@ import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
 import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerSeed;
 import li.vin.netv2.model.OdometerTrigger;
+import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
@@ -409,7 +411,6 @@ public final class VinliRequest {
 
     /**
      * Get {@link Odometer.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
-     *
      */
     @NonNull
     public ForIdBuilder< //
@@ -425,21 +426,54 @@ public final class VinliRequest {
           .id(id);
     }
 
+    /** Create a new {@link Odometer}. Require or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Odometer, Odometer.Wrapper>> createOdometer(@NonNull
+        OdometerSeed odometerSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .odometerCreateWrapperBuilder(this, validateAndGetClient(), odometerSeed));
+    }
+
+    /** Delete a {@link Odometer} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteOdometer(@NonNull String id) {
+      return RequestFactories.inst.get().odometerDeleteItemBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
     /**
      * Get {@link OdometerTrigger.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
-     *
      */
     @NonNull
     public ForIdBuilder< //
         TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries>> getOdometerTriggers() {
-      return new ForIdBuilder<>(
-          RequestFactories.inst.get().odometerTriggersTimeSeriesBuilder(this, validateAndGetClient()));
+      return new ForIdBuilder<>(RequestFactories.inst.get()
+          .odometerTriggersTimeSeriesBuilder(this, validateAndGetClient()));
     }
 
     /** Get a single {@link OdometerTrigger} by id. */
     @NonNull
-    public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> getOdometerTrigger(@NonNull String id) {
-      return RequestFactories.inst.get().odometerTriggerWrapperBuilder(this, validateAndGetClient()) //
+    public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> getOdometerTrigger(
+        @NonNull String id) {
+      return RequestFactories.inst.get()
+          .odometerTriggerWrapperBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /** Create a new {@link OdometerTrigger}. Require or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper>> createOdometerTrigger(@NonNull
+        OdometerTriggerSeed odometerTriggerSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get().odometerTriggerCreateWrapperBuilder( //
+          this, validateAndGetClient(), odometerTriggerSeed));
+    }
+
+    /** Delete a {@link Odometer} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteOdometerTrigger(@NonNull String id) {
+      return RequestFactories.inst.get().odometerTriggerDeleteItemBuilder(this, validateAndGetClient()) //
           .id(id);
     }
 
