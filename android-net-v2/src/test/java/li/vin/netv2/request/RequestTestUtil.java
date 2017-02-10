@@ -17,7 +17,7 @@ public final class RequestTestUtil {
 
   public static VinliRequest.Builder baseBuilder(String env) {
     return VinliRequest.builder()
-        .logLevel(HttpLoggingInterceptor.Level.HEADERS)
+        .logLevel(HttpLoggingInterceptor.Level.BODY)
         .clientBuilder(generateUnsafeBuilder())
         .env(env);
   }

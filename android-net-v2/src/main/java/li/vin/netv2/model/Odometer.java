@@ -54,6 +54,11 @@ public class Odometer extends BaseModels.BaseModelId {
   }
 
   @NonNull
+  public String timestamp() {
+    return timestamp;
+  }
+
+  @NonNull
   public Link<Wrapper> selfLink() {
     return Link.create(maps.get().getStr(links, "self"));
   }

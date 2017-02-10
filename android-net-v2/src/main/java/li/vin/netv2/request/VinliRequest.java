@@ -20,6 +20,8 @@ import li.vin.netv2.model.Link;
 import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
+import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerTrigger;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
@@ -403,6 +405,42 @@ public final class VinliRequest {
         WrapperBuilder<Distance, Distance.Wrapper>> getLatestDistance(@NonNull Unit unit) {
       return new ForIdBuilder<>(
           RequestFactories.inst.get().distanceWrapperBuilder(this, validateAndGetClient(), unit));
+    }
+
+    /**
+     * Get {@link Odometer.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
+     *
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<Odometer, Odometer.TimeSeries>> getOdometers() {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().odometersTimeSeriesBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link Odometer} by id. */
+    @NonNull
+    public WrapperBuilder<Odometer, Odometer.Wrapper> getOdometer(@NonNull String id) {
+      return RequestFactories.inst.get().odometerWrapperBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /**
+     * Get {@link OdometerTrigger.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
+     *
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries>> getOdometerTriggers() {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().odometerTriggersTimeSeriesBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link OdometerTrigger} by id. */
+    @NonNull
+    public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> getOdometerTrigger(@NonNull String id) {
+      return RequestFactories.inst.get().odometerTriggerWrapperBuilder(this, validateAndGetClient()) //
+          .id(id);
     }
 
     /**

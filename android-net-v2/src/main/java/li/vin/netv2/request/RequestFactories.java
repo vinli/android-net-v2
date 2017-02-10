@@ -15,6 +15,8 @@ import li.vin.netv2.model.Event;
 import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
+import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerTrigger;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
@@ -198,6 +200,73 @@ class RequestFactories {
         throw new RuntimeException("validations failed: this should never happen!");
       }
     }, EnumSet.of(VEHICLE));
+  }
+
+  public TimeSeriesBuilder<Odometer, Odometer.TimeSeries> odometersTimeSeriesBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new TimeSeriesBuilder<>(builder,
+        new TimeSeriesObservableFactory<Odometer, Odometer.TimeSeries>() {
+          @NonNull
+          @Override
+          public Observable<Odometer.TimeSeries> call(
+              @NonNull TimeSeriesBuilder<Odometer, Odometer.TimeSeries> b) {
+            if (b.link != null) return client.distances.get().odometerReportsForUrl(b.link);
+            if (b.forIdVals != null && b.forIdVals.forId == VEHICLE) {
+              return client.distances.get()
+                  .odometerReports(b.forIdVals.target, b.since, b.until, b.limit, b.sortDir);
+            }
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.of(VEHICLE));
+  }
+
+  public WrapperBuilder<Odometer, Odometer.Wrapper> odometerWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new WrapperBuilder<>(builder,
+        new WrapperObservableFactory<Odometer, Odometer.Wrapper>() {
+          @NonNull
+          @Override
+          public Observable<Odometer.Wrapper> call(
+              @NonNull WrapperBuilder<Odometer, Odometer.Wrapper> b) {
+            if (b.link != null) return client.distances.get().odometerReportForUrl(b.link);
+            if (b.id != null) return client.distances.get().odometerReport(b.id);
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.noneOf(ForId.class));
+  }
+
+  public TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries> odometerTriggersTimeSeriesBuilder(
+      //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new TimeSeriesBuilder<>(builder,
+        new TimeSeriesObservableFactory<OdometerTrigger, OdometerTrigger.TimeSeries>() {
+          @NonNull
+          @Override
+          public Observable<OdometerTrigger.TimeSeries> call(
+              @NonNull TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries> b) {
+            if (b.link != null) return client.distances.get().odometerTriggersForUrl(b.link);
+            if (b.forIdVals != null && b.forIdVals.forId == VEHICLE) {
+              return client.distances.get()
+                  .odometerTriggers(b.forIdVals.target, b.since, b.until, b.limit, b.sortDir);
+            }
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.of(VEHICLE));
+  }
+
+  public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> odometerTriggerWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new WrapperBuilder<>(builder,
+        new WrapperObservableFactory<OdometerTrigger, OdometerTrigger.Wrapper>() {
+          @NonNull
+          @Override
+          public Observable<OdometerTrigger.Wrapper> call(
+              @NonNull WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> b) {
+            if (b.link != null) return client.distances.get().odometerTriggerForUrl(b.link);
+            if (b.id != null) return client.distances.get().odometerTrigger(b.id);
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.noneOf(ForId.class));
   }
 
   public TimeSeriesBuilder<Dtc, Dtc.TimeSeries> dtcsTimeSeriesBuilder( //

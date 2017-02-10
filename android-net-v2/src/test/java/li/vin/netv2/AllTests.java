@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -26,6 +27,8 @@ import li.vin.netv2.model.Link;
 import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
+import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerTrigger;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.SortDir;
@@ -266,6 +269,8 @@ public class AllTests {
     ShadowLog.stream = System.out;
 
     builder = baseBuilder("dev");
+
+
 
     // LET'S LOAD SOME DATA!
 
@@ -581,6 +586,33 @@ public class AllTests {
         assertTrue(distance.confidenceMax() >= 0f);
         assertTrue(u.equals(distance.unit()));
         assertFalse(distance.unit().equals(Unit.UNKNOWN));
+      }
+    };
+  }
+
+  private static Action1<Odometer> checkOdometerAction(@NonNull final Builder b) {
+    return new Action1<Odometer>() {
+      @Override
+      public void call(Odometer odometer) {
+        sanityCheckModel(odometer, Odometer.class, b, false);
+        assertNotNull(odometer.vehicleId());
+        assertTrue(odometer.reading() >= 0f);
+        assertFalse(odometer.unit().equals(Unit.UNKNOWN));
+        assertNotNull(odometer.timestamp());
+      }
+    };
+  }
+
+  private static Action1<OdometerTrigger> checkOdometerTriggerAction(@NonNull final Builder b) {
+    return new Action1<OdometerTrigger>() {
+      @Override
+      public void call(OdometerTrigger odometerTrigger) {
+        sanityCheckModel(odometerTrigger, OdometerTrigger.class, b, false);
+        assertNotNull(odometerTrigger.vehicleId());
+        assertTrue(odometerTrigger.threshhold()>= 0f);
+        assertNotNull(odometerTrigger.unit());
+        assertTrue(odometerTrigger.events()>= 0f);
+        assertNotNull(odometerTrigger.type());
       }
     };
   }
@@ -1392,4 +1424,42 @@ public class AllTests {
   //      .toBlocking()
   //      .subscribe(testSub());
   //}
+
+  @Test
+  public void testGetOdometers() {
+    sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(VehicleBuilderPair pair) {
+        Observable<Odometer.TimeSeries> o1 = pair.second.getOdometers()
+            .forId(VEHICLE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkTmSerAction(1, DESCENDING))
+            .flatMap(VinliRx.<Odometer>flattenTimeSeries())
+            .doOnNext(checkOdometerAction(pair.second));
+      }
+    }).toBlocking().subscribe(testSub());
+
+  }
+
+  @Test
+  public void testGetOdometerTriggers() {
+    sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(VehicleBuilderPair pair) {
+        Observable<OdometerTrigger.TimeSeries> o1 = pair.second.getOdometerTriggers()
+            .forId(VEHICLE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkTmSerAction(1, DESCENDING))
+            .flatMap(VinliRx.<OdometerTrigger>flattenTimeSeries())
+            .doOnNext(checkOdometerTriggerAction(pair.second));
+      }
+    }).toBlocking().subscribe(testSub());
+
+  }
 }

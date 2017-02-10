@@ -51,6 +51,8 @@ public interface Distances {
   Observable<Void> deleteOdometerReport(
       @Path("odometerId") String odometerId);
 
+  @GET Observable<Odometer.Wrapper> odometerReportForUrl(@NonNull @Url String url);
+
   @GET Observable<Odometer.TimeSeries> odometerReportsForUrl(@NonNull @Url String url);
 
   @POST("vehicles/{vehicleId}/odometer_triggers")
@@ -59,7 +61,7 @@ public interface Distances {
       @Body OdometerTriggerSeed.Wrapper odometerTriggerSeed);
 
   @GET("odometer_triggers/{odometerTriggerId}")
-  Observable<Odometer.Wrapper> odometerTrigger(
+  Observable<OdometerTrigger.Wrapper> odometerTrigger(
       @Path("odometerTriggerId") String odometerTriggerId);
 
   @DELETE("odometer_triggers/{odometerTriggerId}")
@@ -75,4 +77,6 @@ public interface Distances {
       @Query("sortDir") String sortDir);
 
   @GET Observable<OdometerTrigger.TimeSeries> odometerTriggersForUrl(@NonNull @Url String url);
+
+  @GET Observable<OdometerTrigger.Wrapper> odometerTriggerForUrl(@NonNull @Url String url);
 }

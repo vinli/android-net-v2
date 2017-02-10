@@ -28,24 +28,28 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
       this.str = str;
     }
 
+    @Override
+    public String toString() {
+      return str;
+    }
+
     @NonNull
     public static TriggerType fromString(@NonNull String str) {
       if ("specific".equals(str)) return SPECIFIC;
       if ("from_now".equals(str)) return FROM_NOW;
       if ("milestone".equals(str)) return MILESTONE;
-      throw new IllegalArgumentException("str is not a vlid string to be used for TriggerType");
+      throw new IllegalArgumentException("str is not a valid string to be used for TriggerType");
     }
   }
 
   String vehicleId;
   Double threshold;
   Double events;
-  TriggerType type;
-  Distance.Unit unit;
+  String type;
+  String unit;
 
   @ReqLink({ //
       "self", //
-      "device", //
       "vehicle" //
   }) Map links;
 
@@ -66,22 +70,17 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
 
   @NonNull
   public TriggerType type() {
-    return type;
+    return TriggerType.fromString(type);
   }
 
   @NonNull
   public Distance.Unit unit() {
-    return unit;
+    return Distance.Unit.fromString(unit);
   }
 
   @NonNull
   public Link<Wrapper> selfLink() {
     return Link.create(maps.get().getStr(links, "self"));
-  }
-
-  @NonNull
-  public Link<Device.Wrapper> deviceLink() {
-    return Link.create(maps.get().getStr(links, "device"));
   }
 
   @NonNull
