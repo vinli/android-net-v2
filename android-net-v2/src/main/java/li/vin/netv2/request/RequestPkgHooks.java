@@ -5,6 +5,7 @@ import li.vin.netv2.model.DtcDiagnosis;
 import li.vin.netv2.model.OdometerSeed;
 import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.RuleSeed;
+import li.vin.netv2.model.SubscriptionSeed;
 import li.vin.netv2.model.misc.IsoDateFormat;
 import li.vin.netv2.util.Lazy;
 import rx.functions.Func0;
@@ -68,5 +69,13 @@ public final class RequestPkgHooks {
     RequestPkgHooks hooks = new RequestPkgHooks();
     OdometerTriggerSeed.Wrapper.provideWrapper(hooks, odometerTriggerSeed);
     return hooks.odometerTriggerSeedWrapperHook;
+  }
+
+  public SubscriptionSeed.Wrapper subscriptionSeedWrapperHook;
+
+  static SubscriptionSeed.Wrapper subscriptionSeedWrapper(SubscriptionSeed subscriptionSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    SubscriptionSeed.Wrapper.provideWrapper(hooks, subscriptionSeed);
+    return hooks.subscriptionSeedWrapperHook;
   }
 }

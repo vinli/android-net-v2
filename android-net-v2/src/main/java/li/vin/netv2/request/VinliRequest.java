@@ -29,6 +29,8 @@ import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
 import li.vin.netv2.model.RuleSeed;
 import li.vin.netv2.model.Snapshot;
+import li.vin.netv2.model.Subscription;
+import li.vin.netv2.model.SubscriptionSeed;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
 import li.vin.netv2.model.Vehicle;
@@ -618,8 +620,8 @@ public final class VinliRequest {
     @NonNull
     public ForIdBuilder< //
         TimeSeriesBuilder<Snapshot, Snapshot.TimeSeries>> getSnapshots(@NonNull String fields) {
-      return new ForIdBuilder<>(
-          RequestFactories.inst.get().snapshotsTimeSeriesBuilder(this,validateAndGetClient(), fields)); //
+      return new ForIdBuilder<>(RequestFactories.inst.get()
+          .snapshotsTimeSeriesBuilder(this, validateAndGetClient(), fields)); //
     }
 
     /**
@@ -639,6 +641,52 @@ public final class VinliRequest {
       return RequestFactories.inst.get()
           .notificationWrapperBuilder(this, validateAndGetClient())
           .id(id);
+    }
+
+    /**
+     * Get {@link Subscription.Page} for a device or vehicle. Requires {@link ForId#DEVICE} or
+     * {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        PageBuilder<Subscription, Subscription.Page>> getSubscriptions() {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().subscriptionPageBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link Subscription} by id. */
+    @NonNull
+    public WrapperBuilder<Subscription, Subscription.Wrapper> getSubscription(@NonNull String id) {
+      return RequestFactories.inst.get() //
+          .subscriptionWrapperBuilder(this, validateAndGetClient()).id(id);
+    }
+
+    /** Create a new {@link Subscription}. Requires {@link ForId#DEVICE} or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Subscription, Subscription.Wrapper>> createSubscription(
+        @NonNull SubscriptionSeed subscriptionSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subcriptionCreateWrapperBuilder(this, validateAndGetClient(), subscriptionSeed));
+    }
+
+    /** Delete a {@link Subscription} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteSubscription(@NonNull String id) {
+      return RequestFactories.inst.get() //
+          .subscriptionDeleteItemBuilder(this, validateAndGetClient()).id(id);
+    }
+
+    /**
+     * Edit an exisiting {@link Rule}. Requires {@link ForId#DEVICE} and {@link
+     * ForId#SUBSCRIPTION}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Subscription, Subscription.Wrapper>> createRule(@NonNull String id,
+        @NonNull SubscriptionSeed subscriptionSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subcriptionEditWrapperBuilder(this, validateAndGetClient(), subscriptionSeed));
     }
 
     /**

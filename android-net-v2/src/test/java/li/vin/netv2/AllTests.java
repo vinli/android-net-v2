@@ -35,6 +35,8 @@ import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Snapshot;
 import li.vin.netv2.model.SortDir;
+import li.vin.netv2.model.Subscription;
+import li.vin.netv2.model.SubscriptionSeed;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
 import li.vin.netv2.model.Vehicle;
@@ -274,10 +276,7 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-    tokens = Arrays.asList( //
-        "3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS", //
-        "jeyC7DhYSwjfju8LHhja7L0zylmmC81glkq_FMJVVSo_lZbI1joECS3w07_Pag9W" //
-    );
+   
 
     // LET'S LOAD SOME DATA!
 
@@ -708,6 +707,18 @@ public class AllTests {
         assertNotNull(not.payload());
         assertNotNull(not.state());
         assertNotNull(not.createdAt());
+      }
+    };
+  }
+
+  private static Action1<Subscription> checkSubscriptionAction(@NonNull final Builder b) {
+    return new Action1<Subscription>() {
+      @Override
+      public void call(Subscription subscription) {
+        sanityCheckModel(subscription, Subscription.class, b, false);
+        assertNotNull(subscription.eventType());
+        assertNotNull(subscription.url());
+        assertNotNull(subscription.selfLink());
       }
     };
   }
@@ -1529,6 +1540,24 @@ public class AllTests {
   }
 
   @Test
+  public void testGetSnapshotsDevice() {
+    sharedDeviceObs.flatMap(new Func1<DeviceBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(DeviceBuilderPair pair) {
+        Observable<Snapshot.TimeSeries> o1 = pair.second.getSnapshots("rpm")
+            .forId(VEHICLE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkTmSerAction(1, DESCENDING))
+            .flatMap(VinliRx.<Snapshot>flattenTimeSeries())
+            .doOnNext(checkSnapshotAction(pair.second));
+      }
+    }).toBlocking().subscribe(AllTests.testSub());
+  }
+
+  @Test
   public void testGetSnapshotsVehicle() {
     sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
       @Override
@@ -1544,5 +1573,76 @@ public class AllTests {
             .doOnNext(checkSnapshotAction(pair.second));
       }
     }).toBlocking().subscribe(testSub());
+  }
+
+  @Test
+  public void testGetSubscriptionsDevice() {
+    sharedDeviceObs.flatMap(new Func1<DeviceBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(DeviceBuilderPair pair) {
+        Observable<Subscription.Page> o1 = pair.second.getSubscriptions()
+            .forId(DEVICE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkPageAction(1, 0))
+            .flatMap(VinliRx.<Subscription>flattenPage())
+            .doOnNext(checkSubscriptionAction(pair.second));
+      }
+    }).toBlocking().subscribe(AllTests.testSub());
+  }
+
+  @Test
+  public void testGetSubscriptionsVehicle() {
+    sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
+      @Override
+      public Observable<?> call(VehicleBuilderPair pair) {
+        Observable<Subscription.Page> o1 = pair.second.getSubscriptions()
+            .forId(VEHICLE, pair.first.id())
+            .limit(1)
+            .build()
+            .observeAll()
+            .take(1);
+        return o1.doOnNext(checkPageAction(1, 0))
+            .flatMap(VinliRx.<Subscription>flattenPage())
+            .doOnNext(checkSubscriptionAction(pair.second));
+      }
+    }).toBlocking().subscribe(testSub());
+  }
+
+  @Test
+  public void testGetSubscription() {
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+    b.getSubscription("25903ca5-d4dc-40f9-b506-d4870c51107a")
+        .build()
+        .observeExtracted()
+        .doOnNext(checkSubscriptionAction(b))
+        .toBlocking()
+        .subscribe(testSub());
+  }
+
+  @Test
+  public void testCreateSubscription() {
+    baseBuilder("dev") //
+        .logLevel(HttpLoggingInterceptor.Level.BODY) //
+        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .createSubscription(
+            SubscriptionSeed.create().eventType("dtc-on").url("https://fakeurl.com/notifs"))
+        .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Subscription created..."))
+        .flatMap(new Func1<Pair<Subscription, Builder>, Observable<?>>() {
+          @Override
+          public Observable<?> call(Pair<Subscription, Builder> subscriptionBuilderPair) {
+            return subscriptionBuilderPair.second.deleteSubscription(
+                subscriptionBuilderPair.first.id()).build().observe();
+          }
+        })
+
+        .doOnNext(simplePrintAction(System.err, "... Subscription deleted!"))
+        .toBlocking()
+        .subscribe(AllTests.testSub());
   }
 }

@@ -19,6 +19,7 @@ import li.vin.netv2.service.Notifications;
 import li.vin.netv2.service.ReportCards;
 import li.vin.netv2.service.Rules;
 import li.vin.netv2.service.Snapshots;
+import li.vin.netv2.service.Subscriptions;
 import li.vin.netv2.service.Trips;
 import li.vin.netv2.service.Users;
 import li.vin.netv2.service.Vehicles;
@@ -153,6 +154,7 @@ public class CachedHttpClients {
     public final Lazy<Messages> messages;
     public final Lazy<Snapshots> snapshots;
     public final Lazy<Notifications> notifications;
+    public final Lazy<Subscriptions> subscriptions;
     public final Lazy<Trips> trips;
     public final Lazy<Users> users;
     public final Lazy<ReportCards> reportCards;
@@ -184,6 +186,7 @@ public class CachedHttpClients {
       this.messages = lazyService(this.telemAdapter, Messages.class);
       this.snapshots = lazyService(this.telemAdapter, Snapshots.class);
       this.notifications = lazyService(this.eventsAdapter, Notifications.class);
+      this.subscriptions = lazyService(this.eventsAdapter, Subscriptions.class);
       this.trips = lazyService(this.tripsAdapter, Trips.class);
       this.users = lazyService(Endpoint.AUTH, Users.class);
       this.reportCards = lazyService(this.behavioralAdapter, ReportCards.class);
