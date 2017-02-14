@@ -22,6 +22,7 @@ import li.vin.netv2.model.Distance;
 import li.vin.netv2.model.Distance.Unit;
 import li.vin.netv2.model.Dtc;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
 import li.vin.netv2.model.Event;
 import li.vin.netv2.model.Link;
 import li.vin.netv2.model.Location;
@@ -78,6 +79,7 @@ import static li.vin.netv2.model.Dtc.State.ACTIVE;
 import static li.vin.netv2.model.Dtc.State.INACTIVE;
 import static li.vin.netv2.model.SortDir.DESCENDING;
 import static li.vin.netv2.request.ForId.DEVICE;
+import static li.vin.netv2.request.ForId.DUMMY;
 import static li.vin.netv2.request.ForId.EVENT;
 import static li.vin.netv2.request.ForId.VEHICLE;
 import static li.vin.netv2.request.RequestTestUtil.accessTokenFromBuilder;
@@ -276,7 +278,7 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-   
+    
 
     // LET'S LOAD SOME DATA!
 
@@ -784,6 +786,37 @@ public class AllTests {
         assertTrue(reportCard.gradeCount(ReportCard.Grade.UNKNOWN) >= 0);
         assertNotNull(reportCard.overallGrade());
         assertFalse(reportCard.overallGrade().equals(ReportCard.Grade.UNKNOWN));
+      }
+    };
+  }
+
+  private static Action1<Dummy> checkDummyAction(@NonNull final Builder b) {
+    return new Action1<Dummy>() {
+      @Override
+      public void call(Dummy dummy) {
+        sanityCheckModel(dummy, Dummy.class, b, false);
+        assertNotNull(dummy.id());
+        assertNotNull(dummy.name());
+        assertNotNull(dummy.deviceId());
+        assertNotNull(dummy.caseId());
+        assertNotNull(dummy.selfLink());
+        assertNotNull(dummy.runsLink());
+        assertNotNull(dummy.deviceLink());
+        assertNotNull(dummy.messagesLink());
+        assertNotNull(dummy.eventsLink());
+      }
+    };
+  }
+
+  private static Action1<Dummy.Run> checkRunAction(@NonNull final Builder b) {
+    return new Action1<Dummy.Run>() {
+      @Override
+      public void call(Dummy.Run run) {
+        sanityCheckModel(run, Dummy.Run.class, b, false);
+        assertNotNull(run.id());
+        assertNotNull(run.routeId());
+        assertNotNull(run.state());
+        assertNotNull(run.repeat());
       }
     };
   }
@@ -1477,7 +1510,7 @@ public class AllTests {
   public void testCreateOdometers() {
     baseBuilder("dev") //
         .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .accessToken(tokens.get(0))
         .createOdometer(OdometerSeed.create().reading(12345.0).unit(Unit.MILES.toString()))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
@@ -1518,7 +1551,7 @@ public class AllTests {
   public void testCreateOdometerTrigger() {
     baseBuilder("dev") //
         .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .accessToken(tokens.get(0))
         .createOdometerTrigger(OdometerTriggerSeed.create()
             .threshold(20000.0)
             .unit(Unit.MILES.toString())
@@ -1626,7 +1659,7 @@ public class AllTests {
   public void testCreateSubscription() {
     baseBuilder("dev") //
         .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken("3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS")
+        .accessToken(tokens.get(0))
         .createSubscription(
             SubscriptionSeed.create().eventType("dtc-on").url("https://fakeurl.com/notifs"))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
@@ -1643,6 +1676,73 @@ public class AllTests {
 
         .doOnNext(simplePrintAction(System.err, "... Subscription deleted!"))
         .toBlocking()
-        .subscribe(AllTests.testSub());
+        .subscribe(testSub());
+  }
+
+  @Test
+  public void testGetDummies() {
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+
+    b.getDummies()
+        .build()
+        .observe()
+        .flatMap(VinliRx.<Dummy>flattenPage())
+        .doOnNext(checkDummyAction(b))
+        .toBlocking()
+        .subscribe(testSub());
+  }
+
+  @Test
+  public void testCreate() {
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+    b.createRun(Dummy.RunSeed.create()
+        .vin("VVV12912912913456")
+        .routeId("8e90cf47-c6c1-486d-9ba8-194f569c7309"))
+        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Run created..."))
+        .flatMap(new Func1<Pair<Dummy.Run, Builder>, Observable<?>>() {
+          @Override
+          public Observable<?> call(Pair<Dummy.Run, Builder> runBuilderPair) {
+            return runBuilderPair.second.deleteRun(runBuilderPair.first.id()).build().observe();
+          }
+        })
+
+        .doOnNext(simplePrintAction(System.err, "... Run deleted!"))
+        .toBlocking()
+        .subscribe(testSub());
+  }
+
+  @Test
+  public void testGetCurrentRun() {//TODO doesn't check if a run is going..
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+    b.createRun(Dummy.RunSeed.create()
+        .vin("VVV12912912913456")
+        .routeId("8e90cf47-c6c1-486d-9ba8-194f569c7309"))
+        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Run created..."))
+        .toBlocking()
+        .subscribe(testSub());
+
+    b.getCurrentRun()
+        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
+        .build()
+        .observeExtracted()
+        .doOnNext(checkRunAction(b))
+        .flatMap(new Func1<Dummy.Run, Observable<?>>() {
+          @Override
+          public Observable<?> call(Dummy.Run run) {
+            System.out.println(run.id());
+            return b.deleteRun(run.id())
+                .build()
+                .observe()
+                .doOnNext(simplePrintAction(System.err, "... Run deleted!"));
+          }
+        })
+        .toBlocking()
+        .subscribe(testSub());
   }
 }

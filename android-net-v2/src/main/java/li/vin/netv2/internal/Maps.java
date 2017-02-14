@@ -141,6 +141,22 @@ public class Maps {
   }
 
   @NonNull
+  public Long getLong(@Nullable Map ltm, @NonNull String key) {
+    Object o = getObj(ltm, key);
+    if (o instanceof Number) return ((Number) o).longValue();
+    throw new RuntimeException(format("%s not a double.", key));
+  }
+
+  @Nullable
+  public Long getLongNullable(@Nullable Map ltm, @NonNull String key) {
+    try {
+      return getLong(ltm, key);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  @NonNull
   public Boolean getBool(@Nullable Map ltm, @NonNull String key) {
     Object o = getObj(ltm, key);
     if (o instanceof Boolean) return (Boolean) o;

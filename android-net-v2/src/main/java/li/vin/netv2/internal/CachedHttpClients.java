@@ -11,6 +11,7 @@ import li.vin.netv2.service.Collisions;
 import li.vin.netv2.service.Devices;
 import li.vin.netv2.service.Diagnostics;
 import li.vin.netv2.service.Distances;
+import li.vin.netv2.service.Dummies;
 import li.vin.netv2.service.Events;
 import li.vin.netv2.service.Generic;
 import li.vin.netv2.service.Locations;
@@ -143,6 +144,7 @@ public class CachedHttpClients {
     final Lazy<Retrofit> authAdapter;
     final Lazy<Retrofit> behavioralAdapter;
     final Lazy<Retrofit> rulesAdapter;
+    final Lazy<Retrofit> dummiesAdapter;
 
     public final Lazy<Devices> devices;
     public final Lazy<Vehicles> vehicles;
@@ -159,6 +161,7 @@ public class CachedHttpClients {
     public final Lazy<Users> users;
     public final Lazy<ReportCards> reportCards;
     public final Lazy<Rules> rules;
+    public final Lazy<Dummies> dummies;
 
     public final Lazy<Generic> genericAuth;
     public final Lazy<Generic> genericTos;
@@ -175,6 +178,7 @@ public class CachedHttpClients {
       this.authAdapter = lazyAdapter(Endpoint.AUTH);
       this.behavioralAdapter = lazyAdapter(Endpoint.BEHAVIORAL);
       this.rulesAdapter = lazyAdapter(Endpoint.RULES);
+      this.dummiesAdapter = lazyAdapter(Endpoint.DUMMY);
 
       this.devices = lazyService(this.platformAdapter, Devices.class);
       this.vehicles = lazyService(this.platformAdapter, Vehicles.class);
@@ -191,6 +195,7 @@ public class CachedHttpClients {
       this.users = lazyService(Endpoint.AUTH, Users.class);
       this.reportCards = lazyService(this.behavioralAdapter, ReportCards.class);
       this.rules = lazyService(this.rulesAdapter, Rules.class);
+      this.dummies = lazyService(this.dummiesAdapter, Dummies.class);
 
 
       this.genericAuth = lazyService(Endpoint.AUTH, Generic.class);

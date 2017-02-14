@@ -2,6 +2,7 @@ package li.vin.netv2.request;
 
 import li.vin.netv2.internal.CachedHttpClients;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
 import li.vin.netv2.model.OdometerSeed;
 import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.RuleSeed;
@@ -78,4 +79,13 @@ public final class RequestPkgHooks {
     SubscriptionSeed.Wrapper.provideWrapper(hooks, subscriptionSeed);
     return hooks.subscriptionSeedWrapperHook;
   }
+
+  public Dummy.RunSeed.Wrapper runSeedWrapperHook;
+
+  static Dummy.RunSeed.Wrapper runSeedWrapper(Dummy.RunSeed runSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    Dummy.RunSeed.Wrapper.provideWrapper(hooks, runSeed);
+    return hooks.runSeedWrapperHook;
+  }
+
 }

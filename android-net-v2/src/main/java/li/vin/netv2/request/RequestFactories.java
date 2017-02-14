@@ -11,6 +11,7 @@ import li.vin.netv2.model.Device;
 import li.vin.netv2.model.Distance;
 import li.vin.netv2.model.Dtc;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
 import li.vin.netv2.model.Event;
 import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
@@ -44,6 +45,7 @@ import rx.functions.Func1;
 
 import static java.lang.String.format;
 import static li.vin.netv2.request.ForId.DEVICE;
+import static li.vin.netv2.request.ForId.DUMMY;
 import static li.vin.netv2.request.ForId.EVENT;
 import static li.vin.netv2.request.ForId.SUBSCRIPTION;
 import static li.vin.netv2.request.ForId.TRIP;
@@ -52,6 +54,7 @@ import static li.vin.netv2.request.RequestPkgHooks.dtcDiagWrapper;
 import static li.vin.netv2.request.RequestPkgHooks.odometerSeedWrapper;
 import static li.vin.netv2.request.RequestPkgHooks.odometerTriggerSeedWrapper;
 import static li.vin.netv2.request.RequestPkgHooks.ruleSeedWrapper;
+import static li.vin.netv2.request.RequestPkgHooks.runSeedWrapper;
 import static li.vin.netv2.request.RequestPkgHooks.subscriptionSeedWrapper;
 
 class RequestFactories {
@@ -843,6 +846,68 @@ class RequestFactories {
       @Override
       public Observable<Void> call(@NonNull ItemBuilder<Void> b) {
         if (b.id != null) return client.rules.get().deleteRule(b.id);
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
+  public PageBuilder<Dummy, Dummy.Page> dummiesPageBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new PageBuilder<>(builder, new PageObservableFactory< //
+        Dummy, Dummy.Page>() {
+      @NonNull
+      @Override
+      public Observable<Dummy.Page> call(@NonNull PageBuilder<Dummy, Dummy.Page> b) {
+        if (b.link != null) return client.dummies.get().dummiesForUrl(b.link);
+        return client.dummies.get().dummies(b.limit, b.offset);
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
+  public WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> runWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new WrapperBuilder<>(builder, new WrapperObservableFactory<Dummy.Run, Dummy.Run.Wrapper>() {
+      @NonNull
+      @Override
+      public Observable<Dummy.Run.Wrapper> call(@NonNull WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> b) {
+        if (b.link != null) return client.dummies.get().runForUrl(b.link);
+        if (b.forIdVals != null && b.forIdVals.forId == DUMMY) {
+          return client.dummies.get().currentRun(b.forIdVals.target);
+        }
+        throw new RuntimeException("validations failed: this should never happen!");
+      }
+    }, EnumSet.of(DUMMY));
+  }
+
+  public WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> runCreateWrapperBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client,
+      @NonNull final Dummy.RunSeed seed) {
+    return new WrapperBuilder<>(builder,
+        new WrapperObservableFactory<Dummy.Run, Dummy.Run.Wrapper>() {
+          @NonNull
+          @Override
+          public Observable<Dummy.Run.Wrapper> call(
+              @NonNull WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> b) {
+            try {
+              seed.validate();
+            } catch (RuntimeException rte) {
+              return Observable.error(rte);
+            }
+            if (b.forIdVals != null && b.forIdVals.forId == DUMMY) {
+              return client.dummies.get().create(b.forIdVals.target, runSeedWrapper(seed));
+            }
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.of(DUMMY));
+  }
+
+  public ItemBuilder<Void> runDeleteItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<Void>() {
+      @NonNull
+      @Override
+      public Observable<Void> call(@NonNull ItemBuilder<Void> b) {
+        if (b.id != null) return client.dummies.get().deleteRun(b.id);
         throw new RuntimeException("validations failed: this should never happen!");
       }
     }, EnumSet.noneOf(ForId.class));

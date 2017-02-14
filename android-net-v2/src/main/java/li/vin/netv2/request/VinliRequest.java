@@ -15,6 +15,7 @@ import li.vin.netv2.model.Distance.Unit;
 import li.vin.netv2.model.Dtc;
 import li.vin.netv2.model.Dtc.State;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
 import li.vin.netv2.model.Event;
 import li.vin.netv2.model.Link;
 import li.vin.netv2.model.Location;
@@ -838,6 +839,36 @@ public final class VinliRequest {
       return RequestFactories.inst.get() //
           .ruleDeleteItemBuilder(this, validateAndGetClient()) //
           .id(id);
+    }
+
+    /** Get {@link Dummy.Page} for the given {@link #accessToken(String)}. */
+    @NonNull
+    public PageBuilder<Dummy, Dummy.Page> getDummies() {
+      return RequestFactories.inst.get() //
+          .dummiesPageBuilder(this, validateAndGetClient());
+    }
+
+    /** Get a single {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
+    @NonNull
+    public ForIdBuilder<WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper>> getCurrentRun() {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .runWrapperBuilder(this, validateAndGetClient()));
+    }
+
+    /** Create a new {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
+    @NonNull
+    public  //
+    ForIdBuilder<WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper>> createRun(
+        @NonNull Dummy.RunSeed runSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .runCreateWrapperBuilder(this, validateAndGetClient(), runSeed));
+    }
+
+    /** Delete a {@link Dummy.Run} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteRun(@NonNull String id) {
+      return RequestFactories.inst.get() //
+          .runDeleteItemBuilder(this, validateAndGetClient()).id(id);
     }
   }
 }
