@@ -12,16 +12,11 @@ import li.vin.netv2.model.misc.StrictValidations.ReqLink;
 
 import static li.vin.netv2.model.ModelPkgHooks.maps;
 
-/**
- * Created by JoshBeridon on 2/3/17.
- */
-
 public class Odometer extends BaseModels.BaseModelId {
 
   Odometer() {
 
   }
-
 
   Double reading;
   String vehicleId;

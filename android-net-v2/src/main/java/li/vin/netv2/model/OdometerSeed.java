@@ -4,10 +4,6 @@ import android.support.annotation.NonNull;
 import li.vin.netv2.model.contract.ModelSeed;
 import li.vin.netv2.request.RequestPkgHooks;
 
-/**
- * Created by JoshBeridon on 2/9/17.
- */
-
 public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
 
   @NonNull

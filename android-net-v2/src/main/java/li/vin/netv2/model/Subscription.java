@@ -32,7 +32,6 @@ public class Subscription extends BaseModels.BaseModelId {
       "notifications" //
   }) Map links;
 
-
   @Nullable
   public String vehicleId() {
     return vehicleId;
@@ -74,7 +73,6 @@ public class Subscription extends BaseModels.BaseModelId {
     }
 
     String type;
-
 
     public String type() {
       return type;

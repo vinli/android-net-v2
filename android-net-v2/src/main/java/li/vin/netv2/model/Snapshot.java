@@ -21,7 +21,6 @@ public class Snapshot extends BaseModels.BaseModelId {
       "self"
   }) Map links;
 
-
   @NonNull
   public String timestamp() {
     return timestamp;
@@ -31,7 +30,6 @@ public class Snapshot extends BaseModels.BaseModelId {
   public Data data() {
     return Data.create(data);
   }
-
 
   @NonNull
   public Link<Wrapper> selfLink() {

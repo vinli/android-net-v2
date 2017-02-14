@@ -866,17 +866,19 @@ class RequestFactories {
 
   public WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> runWrapperBuilder( //
       @NonNull Builder builder, @NonNull final ClientAndServices client) {
-    return new WrapperBuilder<>(builder, new WrapperObservableFactory<Dummy.Run, Dummy.Run.Wrapper>() {
-      @NonNull
-      @Override
-      public Observable<Dummy.Run.Wrapper> call(@NonNull WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> b) {
-        if (b.link != null) return client.dummies.get().runForUrl(b.link);
-        if (b.forIdVals != null && b.forIdVals.forId == DUMMY) {
-          return client.dummies.get().currentRun(b.forIdVals.target);
-        }
-        throw new RuntimeException("validations failed: this should never happen!");
-      }
-    }, EnumSet.of(DUMMY));
+    return new WrapperBuilder<>(builder,
+        new WrapperObservableFactory<Dummy.Run, Dummy.Run.Wrapper>() {
+          @NonNull
+          @Override
+          public Observable<Dummy.Run.Wrapper> call(
+              @NonNull WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> b) {
+            if (b.link != null) return client.dummies.get().runForUrl(b.link);
+            if (b.forIdVals != null && b.forIdVals.forId == DUMMY) {
+              return client.dummies.get().currentRun(b.forIdVals.target);
+            }
+            throw new RuntimeException("validations failed: this should never happen!");
+          }
+        }, EnumSet.of(DUMMY));
   }
 
   public WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper> runCreateWrapperBuilder( //

@@ -66,7 +66,8 @@ public final class RequestPkgHooks {
 
   public OdometerTriggerSeed.Wrapper odometerTriggerSeedWrapperHook;
 
-  static OdometerTriggerSeed.Wrapper odometerTriggerSeedWrapper(OdometerTriggerSeed odometerTriggerSeed) {
+  static OdometerTriggerSeed.Wrapper odometerTriggerSeedWrapper(
+      OdometerTriggerSeed odometerTriggerSeed) {
     RequestPkgHooks hooks = new RequestPkgHooks();
     OdometerTriggerSeed.Wrapper.provideWrapper(hooks, odometerTriggerSeed);
     return hooks.odometerTriggerSeedWrapperHook;
@@ -87,5 +88,4 @@ public final class RequestPkgHooks {
     Dummy.RunSeed.Wrapper.provideWrapper(hooks, runSeed);
     return hooks.runSeedWrapperHook;
   }
-
 }

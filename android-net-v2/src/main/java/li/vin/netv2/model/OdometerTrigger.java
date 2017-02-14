@@ -9,10 +9,6 @@ import java.util.Map;
 import static li.vin.netv2.model.ModelPkgHooks.maps;
 import static li.vin.netv2.model.misc.StrictValidations.ReqLink;
 
-/**
- * Created by JoshBeridon on 2/9/17.
- */
-
 public class OdometerTrigger extends BaseModels.BaseModelId {
 
   OdometerTrigger() {

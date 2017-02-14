@@ -4,10 +4,6 @@ import android.support.annotation.NonNull;
 import li.vin.netv2.model.contract.ModelSeed;
 import li.vin.netv2.request.RequestPkgHooks;
 
-/**
- * Created by JoshBeridon on 2/9/17.
- */
-
 public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSeed {
 
   @NonNull
@@ -15,8 +11,7 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
     return new OdometerTriggerSeed(null, null, null);
   }
 
-  OdometerTriggerSeed(final String type, final Double threshold,
-      final String unit) {
+  OdometerTriggerSeed(final String type, final Double threshold, final String unit) {
     this.type = type;
     this.threshold = threshold;
     this.unit = unit;
@@ -52,7 +47,8 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
 
     OdometerTriggerSeed odometerTrigger;
 
-    public static void provideWrapper(RequestPkgHooks hooks, OdometerTriggerSeed odometerTriggerSeed) {
+    public static void provideWrapper(RequestPkgHooks hooks,
+        OdometerTriggerSeed odometerTriggerSeed) {
       hooks.odometerTriggerSeedWrapperHook = new Wrapper();
       hooks.odometerTriggerSeedWrapperHook.odometerTrigger = odometerTriggerSeed;
     }

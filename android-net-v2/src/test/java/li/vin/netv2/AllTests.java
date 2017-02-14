@@ -278,7 +278,10 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-    
+    tokens = Arrays.asList( //
+        "3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS", //
+        "jeyC7DhYSwjfju8LHhja7L0zylmmC81glkq_FMJVVSo_lZbI1joECS3w07_Pag9W" //
+    );
 
     // LET'S LOAD SOME DATA!
 
