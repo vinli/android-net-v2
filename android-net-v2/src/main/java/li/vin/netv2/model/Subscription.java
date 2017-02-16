@@ -99,36 +99,7 @@ public class Subscription extends BaseModels.BaseModelId {
     }
   }
 
-  public static class ObjectRefSeed extends BaseModels.BaseModel implements ModelSeed {
 
-    public static ObjectRefSeed create() {
-      return new ObjectRefSeed(null, null);
-    }
-
-    final String id;
-    final String type;
-
-    ObjectRefSeed(final String id, final String type) {
-      this.id = id;
-      this.type = type;
-    }
-
-    @NonNull
-    public ObjectRefSeed id(String id) {
-      return new ObjectRefSeed(id, type);
-    }
-
-    @NonNull
-    public ObjectRefSeed type(String type) {
-      return new ObjectRefSeed(id, type);
-    }
-
-    @Override
-    public void validate() {
-      if (id == null) throw new IllegalArgumentException("id required");
-      if (type == null) throw new IllegalArgumentException("type required");
-    }
-  }
 
   public static class Wrapper extends BaseModels.BaseModelWrapper<Subscription> {
 

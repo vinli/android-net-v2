@@ -281,7 +281,6 @@ public class AllTests {
 
 
 
-
     // LET'S LOAD SOME DATA!
 
     sharedDeviceObs = Observable.from(tokens) //
@@ -1673,6 +1672,32 @@ public class AllTests {
         .accessToken(tokens.get(0))
         .createSubscription(
             SubscriptionSeed.create().eventType("dtc-on").url("https://fakeurl.com/notifs"))
+        .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
+        .build()
+        .observeExtractedWithBaseBuilder()
+        .doOnNext(simplePrintAction(System.err, "Subscription created..."))
+        .flatMap(new Func1<Pair<Subscription, Builder>, Observable<?>>() {
+          @Override
+          public Observable<?> call(Pair<Subscription, Builder> subscriptionBuilderPair) {
+            return subscriptionBuilderPair.second.deleteSubscription(
+                subscriptionBuilderPair.first.id()).build().observe();
+          }
+        })
+
+        .doOnNext(simplePrintAction(System.err, "... Subscription deleted!"))
+        .toBlocking()
+        .subscribe(testSub());
+  }
+
+  @Test
+  public void testCreateSubscriptionRule() {
+    baseBuilder("dev") //
+        .logLevel(HttpLoggingInterceptor.Level.BODY) //
+        .accessToken(tokens.get(0))
+        .createSubscription(SubscriptionSeed.create()
+            .eventType("dtc-on")
+            .url("https://fakeurl.com/notifs")
+            .object(SubscriptionSeed.ObjectRefSeed.create().id("c440da15-62a8-4ac2-8c56-98f36b43c288").type("rule")))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
         .observeExtractedWithBaseBuilder()
