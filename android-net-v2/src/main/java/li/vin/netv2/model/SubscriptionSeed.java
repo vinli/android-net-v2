@@ -37,6 +37,7 @@ public class SubscriptionSeed extends BaseModels.BaseModel implements ModelSeed 
   }
 
   public SubscriptionSeed object(ObjectRefSeed object) {
+    object.validate();
     return new SubscriptionSeed(eventType, appData, url, object);
   }
 

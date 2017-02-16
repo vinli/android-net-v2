@@ -279,7 +279,7 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-    
+
 
     // LET'S LOAD SOME DATA!
 
@@ -1562,7 +1562,7 @@ public class AllTests {
         .accessToken(tokens.get(0))
         .createOdometerTrigger(OdometerTriggerSeed.create()
             .threshold(20000.0)
-            .unit(Unit.MILES.toString())
+            .unit(Unit.MILES)
             .type(OdometerTrigger.TriggerType.SPECIFIC))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
