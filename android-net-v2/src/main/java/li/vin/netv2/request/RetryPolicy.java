@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static li.vin.netv2.util.NetworkErrors.is5xx;
+import static li.vin.netv2.util.NetworkErrors.isConnectionException;
 import static li.vin.netv2.util.NetworkErrors.isSocketTimeout;
 
 /**
@@ -33,7 +34,7 @@ public abstract class RetryPolicy {
     return new RetryPolicy() {
       @Override
       public long delay(@NonNull Throwable err, int count) {
-        if (is5xx(err) || isSocketTimeout(err)) {
+        if (is5xx(err) || isSocketTimeout(err) || isConnectionException(err)) {
           //noinspection UnnecessaryLocalVariable
           long delay = amountMs;
           if (jitter) return (long) (rand.nextFloat() * delay);
@@ -63,7 +64,7 @@ public abstract class RetryPolicy {
     return new RetryPolicy() {
       @Override
       public long delay(@NonNull Throwable err, int count) {
-        if (is5xx(err) || isSocketTimeout(err)) {
+        if (is5xx(err) || isSocketTimeout(err) || isConnectionException(err)) {
           long delay = amountMs * count;
           if (jitter) return (long) (rand.nextFloat() * delay);
           return delay;
@@ -92,7 +93,7 @@ public abstract class RetryPolicy {
     return new RetryPolicy() {
       @Override
       public long delay(@NonNull Throwable err, int count) {
-        if (is5xx(err) || isSocketTimeout(err)) {
+        if (is5xx(err) || isSocketTimeout(err) || isConnectionException(err)) {
           long delay = amountMs;
           for (int i = 1; i < count; i++) delay *= 2;
           if (jitter) return (long) (rand.nextFloat() * delay);

@@ -279,7 +279,7 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-
+    
 
     // LET'S LOAD SOME DATA!
 
@@ -599,11 +599,11 @@ public class AllTests {
     };
   }
 
-  private static Action1<Odometer> checkOdometerAction(@NonNull final Builder b) {
+  private static Action1<Odometer> checkOdometerAction(@NonNull final Builder b, final boolean followLinks) {
     return new Action1<Odometer>() {
       @Override
       public void call(Odometer odometer) {
-        sanityCheckModel(odometer, Odometer.class, b, false);
+        sanityCheckModel(odometer, Odometer.class, b, followLinks);
         assertNotNull(odometer.vehicleId());
         assertTrue(odometer.reading() >= 0f);
         assertFalse(odometer.unit().equals(Unit.UNKNOWN));
@@ -612,11 +612,11 @@ public class AllTests {
     };
   }
 
-  private static Action1<OdometerTrigger> checkOdometerTriggerAction(@NonNull final Builder b) {
+  private static Action1<OdometerTrigger> checkOdometerTriggerAction(@NonNull final Builder b, final boolean followLinks) {
     return new Action1<OdometerTrigger>() {
       @Override
       public void call(OdometerTrigger odometerTrigger) {
-        sanityCheckModel(odometerTrigger, OdometerTrigger.class, b, false);
+        sanityCheckModel(odometerTrigger, OdometerTrigger.class, b, followLinks);
         assertNotNull(odometerTrigger.vehicleId());
         assertTrue(odometerTrigger.threshhold() >= 0f);
         assertNotNull(odometerTrigger.unit());
@@ -685,11 +685,12 @@ public class AllTests {
     };
   }
 
-  private static Action1<Snapshot> checkSnapshotAction(@NonNull final Builder b) {
+  private static Action1<Snapshot> checkSnapshotAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<Snapshot>() {
       @Override
       public void call(Snapshot snapshot) {
-        sanityCheckModel(snapshot, Snapshot.class, b, false);
+        sanityCheckModel(snapshot, Snapshot.class, b, followLinks);
         assertNotNull(snapshot.timestamp());
         assertNotNull(snapshot.data());
         assertNotNull(snapshot.selfLink());
@@ -714,12 +715,13 @@ public class AllTests {
     };
   }
 
-  private static Action1<Subscription> checkSubscriptionAction(@NonNull final Builder b) {
+  private static Action1<Subscription> checkSubscriptionAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<Subscription>() {
       @Override
       public void call(Subscription subscription) {
         System.out.println(subscription.toString());
-        sanityCheckModel(subscription, Subscription.class, b, false);
+        sanityCheckModel(subscription, Subscription.class, b, followLinks);
         assertNotNull(subscription.eventType());
         assertNotNull(subscription.url());
         assertNotNull(subscription.selfLink());
@@ -814,9 +816,6 @@ public class AllTests {
         sanityCheckModel(run, Dummy.Run.class, b, followLinks);
         assertNotNull(run.id());
         assertNotNull(run.status());
-        //assertNotNull(run.routeId());
-        //assertNotNull(run.state());
-        //assertNotNull(run.repeat());
       }
     };
   }
@@ -1499,7 +1498,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkTmSerAction(1, DESCENDING))
             .flatMap(VinliRx.<Odometer>flattenTimeSeries())
-            .doOnNext(checkOdometerAction(pair.second));
+            .doOnNext(checkOdometerAction(pair.second, true));
       }
     }).toBlocking().subscribe(testSub());
   }
@@ -1533,7 +1532,7 @@ public class AllTests {
     b.getOdometerTrigger("fd0d2f1e-5198-46b3-98da-1f7c4647a5d9")
         .build()
         .observeExtracted()
-        .doOnNext(checkOdometerTriggerAction(b))
+        .doOnNext(checkOdometerTriggerAction(b, true))
         .toBlocking()
         .subscribe(testSub());
   }
@@ -1551,7 +1550,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkTmSerAction(1, DESCENDING))
             .flatMap(VinliRx.<OdometerTrigger>flattenTimeSeries())
-            .doOnNext(checkOdometerTriggerAction(pair.second));
+            .doOnNext(checkOdometerTriggerAction(pair.second, true));
       }
     }).toBlocking().subscribe(testSub());
   }
@@ -1564,7 +1563,7 @@ public class AllTests {
         .createOdometerTrigger(OdometerTriggerSeed.create()
             .threshold(20000.0)
             .unit(Unit.MILES.toString())
-            .type(OdometerTrigger.TriggerType.SPECIFIC.toString()))
+            .type(OdometerTrigger.TriggerType.SPECIFIC))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
         .observeExtractedWithBaseBuilder()
@@ -1573,7 +1572,9 @@ public class AllTests {
           @Override
           public Observable<?> call(Pair<OdometerTrigger, Builder> odometerTriggerBuilderPair) {
             return odometerTriggerBuilderPair.second.deleteOdometerTrigger(
-                odometerTriggerBuilderPair.first.id()).build().observe();
+                odometerTriggerBuilderPair.first.id()) //
+                .build() //
+                .observe();
           }
         })
         .doOnNext(simplePrintAction(System.err, "... Odometer Trigger deleted!"))
@@ -1594,7 +1595,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkTmSerAction(1, DESCENDING))
             .flatMap(VinliRx.<Snapshot>flattenTimeSeries())
-            .doOnNext(checkSnapshotAction(pair.second));
+            .doOnNext(checkSnapshotAction(pair.second, true));
       }
     }).toBlocking().subscribe(AllTests.testSub());
   }
@@ -1612,7 +1613,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkTmSerAction(1, DESCENDING))
             .flatMap(VinliRx.<Snapshot>flattenTimeSeries())
-            .doOnNext(checkSnapshotAction(pair.second));
+            .doOnNext(checkSnapshotAction(pair.second, false));
       }
     }).toBlocking().subscribe(testSub());
   }
@@ -1630,7 +1631,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkPageAction(1, 0))
             .flatMap(VinliRx.<Subscription>flattenPage())
-            .doOnNext(checkSubscriptionAction(pair.second));
+            .doOnNext(checkSubscriptionAction(pair.second, true));
       }
     }).toBlocking().subscribe(AllTests.testSub());
   }
@@ -1648,7 +1649,7 @@ public class AllTests {
             .take(1);
         return o1.doOnNext(checkPageAction(1, 0))
             .flatMap(VinliRx.<Subscription>flattenPage())
-            .doOnNext(checkSubscriptionAction(pair.second));
+            .doOnNext(checkSubscriptionAction(pair.second, false));
       }
     }).toBlocking().subscribe(testSub());
   }
@@ -1660,7 +1661,7 @@ public class AllTests {
         .forId(SUBSCRIPTION, "25903ca5-d4dc-40f9-b506-d4870c51107a")
         .build()
         .observeExtracted()
-        .doOnNext(checkSubscriptionAction(b))
+        .doOnNext(checkSubscriptionAction(b, false))
         .toBlocking()
         .subscribe(testSub());
   }

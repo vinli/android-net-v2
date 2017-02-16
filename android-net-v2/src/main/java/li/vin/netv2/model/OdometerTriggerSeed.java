@@ -21,8 +21,8 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
   final Double threshold;
   final String unit;
 
-  public OdometerTriggerSeed type(@NonNull String type) {
-    return new OdometerTriggerSeed(type, threshold, unit);
+  public OdometerTriggerSeed type(@NonNull OdometerTrigger.TriggerType type) {
+    return new OdometerTriggerSeed(type.toString(), threshold, unit);
   }
 
   public OdometerTriggerSeed threshold(@NonNull Double threshold) {
