@@ -67,7 +67,7 @@ public class Snapshot extends BaseModels.BaseModelId {
     @NonNull
     @Override
     public Snapshot extract() {
-      return null;
+      return snapshot;
     }
 
     @NonNull

@@ -26,7 +26,7 @@ public class Subscription extends BaseModels.BaseModelId {
   @AllowNull String appData;
   @ReqIsoDate String createdAt;
   @ReqIsoDate String updatedAt;
-
+  @AllowNull ObjectRef object;
   @ReqLink({
       "self", //
       "notifications" //
@@ -39,7 +39,7 @@ public class Subscription extends BaseModels.BaseModelId {
 
   @Nullable
   public String deviceId() {
-    return vehicleId;
+    return deviceId;
   }
 
   @Nullable
@@ -55,6 +55,21 @@ public class Subscription extends BaseModels.BaseModelId {
   @Nullable
   public String appData() {
     return appData;
+  }
+
+  @NonNull
+  public String createdAt() {
+    return createdAt;
+  }
+
+  @NonNull
+  public String updatedAt() {
+    return updatedAt;
+  }
+
+  @Nullable
+  public ObjectRef objectRef() {
+    return object;
   }
 
   @NonNull

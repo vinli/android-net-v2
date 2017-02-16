@@ -281,6 +281,7 @@ public class AllTests {
 
 
 
+
     // LET'S LOAD SOME DATA!
 
     sharedDeviceObs = Observable.from(tokens) //
@@ -718,6 +719,7 @@ public class AllTests {
     return new Action1<Subscription>() {
       @Override
       public void call(Subscription subscription) {
+        System.out.println(subscription.toString());
         sanityCheckModel(subscription, Subscription.class, b, false);
         assertNotNull(subscription.eventType());
         assertNotNull(subscription.url());
