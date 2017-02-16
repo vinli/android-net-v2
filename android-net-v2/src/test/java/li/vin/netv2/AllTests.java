@@ -81,6 +81,7 @@ import static li.vin.netv2.model.SortDir.DESCENDING;
 import static li.vin.netv2.request.ForId.DEVICE;
 import static li.vin.netv2.request.ForId.DUMMY;
 import static li.vin.netv2.request.ForId.EVENT;
+import static li.vin.netv2.request.ForId.SUBSCRIPTION;
 import static li.vin.netv2.request.ForId.VEHICLE;
 import static li.vin.netv2.request.RequestTestUtil.accessTokenFromBuilder;
 import static li.vin.netv2.request.RequestTestUtil.baseBuilder;
@@ -278,10 +279,7 @@ public class AllTests {
 
     builder = baseBuilder("dev");
 
-    tokens = Arrays.asList( //
-        "3OvIVyhfWaxhmpBLW9UCSxIR_NGwqmlByeTkTRNKGJO2E8ygUaTif_JELdOx_VdS", //
-        "jeyC7DhYSwjfju8LHhja7L0zylmmC81glkq_FMJVVSo_lZbI1joECS3w07_Pag9W" //
-    );
+
 
     // LET'S LOAD SOME DATA!
 
@@ -793,33 +791,31 @@ public class AllTests {
     };
   }
 
-  private static Action1<Dummy> checkDummyAction(@NonNull final Builder b) {
+  private static Action1<Dummy> checkDummyAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<Dummy>() {
       @Override
       public void call(Dummy dummy) {
-        sanityCheckModel(dummy, Dummy.class, b, false);
+        sanityCheckModel(dummy, Dummy.class, b, followLinks);
         assertNotNull(dummy.id());
         assertNotNull(dummy.name());
         assertNotNull(dummy.deviceId());
         assertNotNull(dummy.caseId());
-        assertNotNull(dummy.selfLink());
-        assertNotNull(dummy.runsLink());
-        assertNotNull(dummy.deviceLink());
-        assertNotNull(dummy.messagesLink());
-        assertNotNull(dummy.eventsLink());
       }
     };
   }
 
-  private static Action1<Dummy.Run> checkRunAction(@NonNull final Builder b) {
+  private static Action1<Dummy.Run> checkRunAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<Dummy.Run>() {
       @Override
       public void call(Dummy.Run run) {
-        sanityCheckModel(run, Dummy.Run.class, b, false);
+        sanityCheckModel(run, Dummy.Run.class, b, followLinks);
         assertNotNull(run.id());
-        assertNotNull(run.routeId());
-        assertNotNull(run.state());
-        assertNotNull(run.repeat());
+        assertNotNull(run.status());
+        //assertNotNull(run.routeId());
+        //assertNotNull(run.state());
+        //assertNotNull(run.repeat());
       }
     };
   }
@@ -1175,25 +1171,23 @@ public class AllTests {
         .subscribe(testSub());
   }
 
-  // TODO - when subscriptions model is in
-  //@Test
-  //public void testGetNotificationsForSubscription() {
-  //
-  //  final Builder b = builder.copy()
-  //      .accessToken("S76PjsfBKE1H820z56Ja9LlbL96Zk8Mo9_XwVVnKWD28NaDBUTqulSa8iFEwmtqs");
-  //
-  //  b.getNotifications()
-  //      .forId(SUBSCRIPTION, "6348305f-f64a-4c0f-a958-cb2d9190f11a")
-  //      .limit(5)
-  //      .sortDir(DESCENDING)
-  //      .build()
-  //      .observeAll()
-  //      .take(2)
-  //      .doOnNext(checkTmSerAction(5, DESCENDING))
-  //      .flatMap(VinliRequest.<VinliRequest.Notification>flattenTimeSeries())
-  //      .toBlocking()
-  //      .subscribe(testSub(checkNotificationAction(b)));
-  //}
+  @Test
+  public void testGetNotificationsForSubscription() {
+
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+
+    b.getNotifications()
+        .forId(SUBSCRIPTION, "25903ca5-d4dc-40f9-b506-d4870c51107a")
+        .limit(5)
+        .sortDir(DESCENDING)
+        .build()
+        .observeAll()
+        .take(2)
+        .doOnNext(checkTmSerAction(5, DESCENDING))
+        .flatMap(VinliRx.<Notification>flattenTimeSeries())
+        .toBlocking()
+        .subscribe(testSub(checkNotificationAction(b)));
+  }
 
   @Test
   public void testNotifications() {
@@ -1533,6 +1527,17 @@ public class AllTests {
   }
 
   @Test
+  public void testGetOdometerTrigger() {
+    final Builder b = builder.copy().accessToken(tokens.get(0));
+    b.getOdometerTrigger("fd0d2f1e-5198-46b3-98da-1f7c4647a5d9")
+        .build()
+        .observeExtracted()
+        .doOnNext(checkOdometerTriggerAction(b))
+        .toBlocking()
+        .subscribe(testSub());
+  }
+
+  @Test
   public void testGetOdometerTriggers() {
     sharedVehicleObs.flatMap(new Func1<VehicleBuilderPair, Observable<?>>() {
       @Override
@@ -1581,7 +1586,7 @@ public class AllTests {
       @Override
       public Observable<?> call(DeviceBuilderPair pair) {
         Observable<Snapshot.TimeSeries> o1 = pair.second.getSnapshots("rpm")
-            .forId(VEHICLE, pair.first.id())
+            .forId(DEVICE, pair.first.id())
             .limit(1)
             .build()
             .observeAll()
@@ -1650,7 +1655,8 @@ public class AllTests {
   @Test
   public void testGetSubscription() {
     final Builder b = builder.copy().accessToken(tokens.get(0));
-    b.getSubscription("25903ca5-d4dc-40f9-b506-d4870c51107a")
+    b.getSubscription()
+        .forId(SUBSCRIPTION, "25903ca5-d4dc-40f9-b506-d4870c51107a")
         .build()
         .observeExtracted()
         .doOnNext(checkSubscriptionAction(b))
@@ -1690,14 +1696,34 @@ public class AllTests {
         .build()
         .observe()
         .flatMap(VinliRx.<Dummy>flattenPage())
-        .doOnNext(checkDummyAction(b))
+        .doOnNext(checkDummyAction(b, true))
         .toBlocking()
         .subscribe(testSub());
   }
 
   @Test
-  public void testCreate() {
+  public void testCreateRun() {
     final Builder b = builder.copy().accessToken(tokens.get(0));
+
+    b.getCurrentRun()
+        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
+        .build()
+        .observeExtracted()
+        .flatMap(new Func1<Dummy.Run, Observable<?>>() {
+          @Override
+          public Observable<?> call(Dummy.Run run) {
+            if (run != null) {
+              return b.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
+                  .build()
+                  .observe()
+                  .doOnNext(simplePrintAction(System.err, "... Run deleted!"));
+            }
+            return null;
+          }
+        })
+        .toBlocking()
+        .subscribe(testSub());
+
     b.createRun(Dummy.RunSeed.create()
         .vin("VVV12912912913456")
         .routeId("8e90cf47-c6c1-486d-9ba8-194f569c7309"))
@@ -1708,7 +1734,9 @@ public class AllTests {
         .flatMap(new Func1<Pair<Dummy.Run, Builder>, Observable<?>>() {
           @Override
           public Observable<?> call(Pair<Dummy.Run, Builder> runBuilderPair) {
-            return runBuilderPair.second.deleteRun(runBuilderPair.first.id()).build().observe();
+            return runBuilderPair.second.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
+                .build()
+                .observe();
           }
         })
 
@@ -1718,8 +1746,27 @@ public class AllTests {
   }
 
   @Test
-  public void testGetCurrentRun() {//TODO doesn't check if a run is going..
+  public void testGetCurrentRun() {
     final Builder b = builder.copy().accessToken(tokens.get(0));
+    b.getCurrentRun()
+        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
+        .build()
+        .observeExtracted()
+        .flatMap(new Func1<Dummy.Run, Observable<?>>() {
+          @Override
+          public Observable<?> call(Dummy.Run run) {
+            if (run != null) {
+              return b.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
+                  .build()
+                  .observe()
+                  .doOnNext(simplePrintAction(System.err, "... Run deleted!"));
+            }
+            return null;
+          }
+        })
+        .toBlocking()
+        .subscribe(testSub());
+
     b.createRun(Dummy.RunSeed.create()
         .vin("VVV12912912913456")
         .routeId("8e90cf47-c6c1-486d-9ba8-194f569c7309"))
@@ -1734,12 +1781,12 @@ public class AllTests {
         .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
         .build()
         .observeExtracted()
-        .doOnNext(checkRunAction(b))
+        .doOnNext(checkRunAction(b, true))
         .flatMap(new Func1<Dummy.Run, Observable<?>>() {
           @Override
           public Observable<?> call(Dummy.Run run) {
             System.out.println(run.id());
-            return b.deleteRun(run.id())
+            return b.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
                 .build()
                 .observe()
                 .doOnNext(simplePrintAction(System.err, "... Run deleted!"));

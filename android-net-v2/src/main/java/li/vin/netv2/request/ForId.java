@@ -12,7 +12,8 @@ public enum ForId {
   DUMMY("dummyId"),
   EVENT("eventId"),
   SUBSCRIPTION("subscriptionId"),
-  TRIP("tripId");
+  TRIP("tripId"),
+  ODOMETERTRIGGER("odometerTriggerId");
 
   @NonNull private final String str;
 
@@ -33,7 +34,8 @@ public enum ForId {
     if ("eventId".equals(str)) return EVENT;
     if ("subscriptionId".equals(str)) return SUBSCRIPTION;
     if ("tripId".equals(str)) return TRIP;
+    if ("odometerTriggerId".equals(str)) return ODOMETERTRIGGER;
     throw new IllegalArgumentException(
-        "must be deviceId, vehicleId, dummyId, eventId, subscriptionId, tripId.");
+        "must be deviceId, vehicleId, dummyId, eventId, subscriptionId, tripId, odometerTriggerId.");
   }
 }

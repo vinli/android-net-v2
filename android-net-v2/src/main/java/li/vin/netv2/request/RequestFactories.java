@@ -593,10 +593,12 @@ class RequestFactories {
       public Observable<Subscription.Wrapper> call(
           @NonNull WrapperBuilder<Subscription, Subscription.Wrapper> b) {
         if (b.link != null) return client.subscriptions.get().subscriptionForUrl((b.link));
-        if (b.id != null) return client.subscriptions.get().subscription(b.id);
+        if (b.forIdVals != null && b.forIdVals.forId == SUBSCRIPTION) {
+          return client.subscriptions.get().subscription(b.forIdVals.target);
+        }
         throw new RuntimeException("validations failed: this should never happen!");
       }
-    }, EnumSet.noneOf(ForId.class));
+    },EnumSet.of(SUBSCRIPTION));
   }
 
   public WrapperBuilder<Subscription, Subscription.Wrapper> subcriptionCreateWrapperBuilder( //

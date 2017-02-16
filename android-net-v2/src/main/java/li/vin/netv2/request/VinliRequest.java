@@ -657,9 +657,9 @@ public final class VinliRequest {
 
     /** Get a single {@link Subscription} by id. */
     @NonNull
-    public WrapperBuilder<Subscription, Subscription.Wrapper> getSubscription(@NonNull String id) {
-      return RequestFactories.inst.get() //
-          .subscriptionWrapperBuilder(this, validateAndGetClient()).id(id);
+    public ForIdBuilder<WrapperBuilder<Subscription, Subscription.Wrapper>> getSubscription() {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subscriptionWrapperBuilder(this, validateAndGetClient()));
     }
 
     /** Create a new {@link Subscription}. Requires {@link ForId#DEVICE} or {@link ForId#VEHICLE}. */
@@ -864,7 +864,7 @@ public final class VinliRequest {
           .runCreateWrapperBuilder(this, validateAndGetClient(), runSeed));
     }
 
-    /** Delete a {@link Dummy.Run} by id. */
+    /** Delete a {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
     @NonNull
     public ItemBuilder<Void> deleteRun(@NonNull String id) {
       return RequestFactories.inst.get() //

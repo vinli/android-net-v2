@@ -10,7 +10,7 @@ import retrofit2.http.Url;
 import rx.Observable;
 
 public interface Snapshots {
-  @GET("devices/{deviceId}/spanshots")
+  @GET("devices/{deviceId}/snapshots")
   Observable<Snapshot.TimeSeries> snapshots(@NonNull @Path("deviceId") String deviceId,
       @NonNull @Query("fields") String fields, @Nullable @Query("since") Long since,
       @Nullable @Query("until") Long until, @Nullable @Query("limit") Integer limit,
