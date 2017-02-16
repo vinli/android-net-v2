@@ -12,10 +12,6 @@ import retrofit2.http.Query;
 import retrofit2.http.Url;
 import rx.Observable;
 
-/**
- * Created by JoshBeridon on 2/14/17.
- */
-
 public interface Dummies {
   @GET("dummies")
   Observable<Dummy.Page> dummies(@Nullable @Query("limit") Integer limit,

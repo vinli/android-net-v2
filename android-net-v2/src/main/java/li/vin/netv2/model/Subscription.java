@@ -6,7 +6,6 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import li.vin.netv2.model.contract.ModelSeed;
 import li.vin.netv2.model.misc.StrictValidations.AllowNull;
 import li.vin.netv2.model.misc.StrictValidations.ReqIsoDate;
 import li.vin.netv2.model.misc.StrictValidations.ReqLink;
@@ -98,8 +97,6 @@ public class Subscription extends BaseModels.BaseModelId {
       }.getType();
     }
   }
-
-
 
   public static class Wrapper extends BaseModels.BaseModelWrapper<Subscription> {
 

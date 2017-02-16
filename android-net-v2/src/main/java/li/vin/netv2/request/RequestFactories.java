@@ -598,7 +598,7 @@ class RequestFactories {
         }
         throw new RuntimeException("validations failed: this should never happen!");
       }
-    },EnumSet.of(SUBSCRIPTION));
+    }, EnumSet.of(SUBSCRIPTION));
   }
 
   public WrapperBuilder<Subscription, Subscription.Wrapper> subcriptionCreateWrapperBuilder( //
