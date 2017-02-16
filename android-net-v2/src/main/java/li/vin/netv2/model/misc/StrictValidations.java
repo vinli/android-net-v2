@@ -392,18 +392,6 @@ public class StrictValidations {
 
   @Retention(RetentionPolicy.RUNTIME)
   @Target(ElementType.FIELD)
-  public @interface ReqLong {
-    String[] value();
-  }
-
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.FIELD)
-  public @interface OptLong {
-    String[] value();
-  }
-
-  @Retention(RetentionPolicy.RUNTIME)
-  @Target(ElementType.FIELD)
   public @interface ReqBool {
     String[] value();
   }

@@ -12,10 +12,6 @@ import li.vin.netv2.request.RequestPkgHooks;
 
 import static li.vin.netv2.model.ModelPkgHooks.maps;
 
-/**
- * Created by JoshBeridon on 2/14/17.
- */
-
 public class Dummy extends BaseModels.BaseModelId {
 
   Dummy() {

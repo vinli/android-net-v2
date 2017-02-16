@@ -16,7 +16,9 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
   }
 
   public enum TriggerType {
-    SPECIFIC("specific"), FROM_NOW("from_now"), MILESTONE("milestone");
+    SPECIFIC("specific"), //
+    FROM_NOW("from_now"), //
+    MILESTONE("milestone");
 
     @NonNull private final String str;
 
