@@ -125,7 +125,7 @@ public class Dummy extends BaseModels.BaseModelId {
     }
 
     @NonNull
-    public Link<Rule.Wrapper> selfLink() {
+    public Link<Wrapper> selfLink() {
       return Link.create(maps.get().getStr(links, "self"));
     }
 

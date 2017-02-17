@@ -40,8 +40,8 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
   }
 
   public static class Wrapper {
-    Wrapper() {
 
+    Wrapper() {
     }
 
     OdometerSeed odometer;
