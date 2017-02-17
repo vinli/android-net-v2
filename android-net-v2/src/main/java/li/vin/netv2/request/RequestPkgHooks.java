@@ -2,7 +2,11 @@ package li.vin.netv2.request;
 
 import li.vin.netv2.internal.CachedHttpClients;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
+import li.vin.netv2.model.OdometerSeed;
+import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.RuleSeed;
+import li.vin.netv2.model.SubscriptionSeed;
 import li.vin.netv2.model.misc.IsoDateFormat;
 import li.vin.netv2.util.Lazy;
 import rx.functions.Func0;
@@ -50,5 +54,38 @@ public final class RequestPkgHooks {
     RequestPkgHooks hooks = new RequestPkgHooks();
     RuleSeed.Wrapper.provideWrapper(hooks, ruleSeed);
     return hooks.ruleSeedWrapperHook;
+  }
+
+  public OdometerSeed.Wrapper odometerSeedWrapperHook;
+
+  static OdometerSeed.Wrapper odometerSeedWrapper(OdometerSeed odometerSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    OdometerSeed.Wrapper.provideWrapper(hooks, odometerSeed);
+    return hooks.odometerSeedWrapperHook;
+  }
+
+  public OdometerTriggerSeed.Wrapper odometerTriggerSeedWrapperHook;
+
+  static OdometerTriggerSeed.Wrapper odometerTriggerSeedWrapper(
+      OdometerTriggerSeed odometerTriggerSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    OdometerTriggerSeed.Wrapper.provideWrapper(hooks, odometerTriggerSeed);
+    return hooks.odometerTriggerSeedWrapperHook;
+  }
+
+  public SubscriptionSeed.Wrapper subscriptionSeedWrapperHook;
+
+  static SubscriptionSeed.Wrapper subscriptionSeedWrapper(SubscriptionSeed subscriptionSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    SubscriptionSeed.Wrapper.provideWrapper(hooks, subscriptionSeed);
+    return hooks.subscriptionSeedWrapperHook;
+  }
+
+  public Dummy.RunSeed.Wrapper runSeedWrapperHook;
+
+  static Dummy.RunSeed.Wrapper runSeedWrapper(Dummy.RunSeed runSeed) {
+    RequestPkgHooks hooks = new RequestPkgHooks();
+    Dummy.RunSeed.Wrapper.provideWrapper(hooks, runSeed);
+    return hooks.runSeedWrapperHook;
   }
 }

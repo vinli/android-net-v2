@@ -15,15 +15,23 @@ import li.vin.netv2.model.Distance.Unit;
 import li.vin.netv2.model.Dtc;
 import li.vin.netv2.model.Dtc.State;
 import li.vin.netv2.model.DtcDiagnosis;
+import li.vin.netv2.model.Dummy;
 import li.vin.netv2.model.Event;
 import li.vin.netv2.model.Link;
 import li.vin.netv2.model.Location;
 import li.vin.netv2.model.Message;
 import li.vin.netv2.model.Notification;
+import li.vin.netv2.model.Odometer;
+import li.vin.netv2.model.OdometerSeed;
+import li.vin.netv2.model.OdometerTrigger;
+import li.vin.netv2.model.OdometerTriggerSeed;
 import li.vin.netv2.model.OverallReportCard;
 import li.vin.netv2.model.ReportCard;
 import li.vin.netv2.model.Rule;
 import li.vin.netv2.model.RuleSeed;
+import li.vin.netv2.model.Snapshot;
+import li.vin.netv2.model.Subscription;
+import li.vin.netv2.model.SubscriptionSeed;
 import li.vin.netv2.model.Trip;
 import li.vin.netv2.model.User;
 import li.vin.netv2.model.Vehicle;
@@ -406,6 +414,75 @@ public final class VinliRequest {
     }
 
     /**
+     * Get {@link Odometer.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<Odometer, Odometer.TimeSeries>> getOdometers() {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().odometersTimeSeriesBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link Odometer} by id. */
+    @NonNull
+    public WrapperBuilder<Odometer, Odometer.Wrapper> getOdometer(@NonNull String id) {
+      return RequestFactories.inst.get().odometerWrapperBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /** Create a new {@link Odometer}. Require or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Odometer, Odometer.Wrapper>> createOdometer(
+        @NonNull OdometerSeed odometerSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .odometerCreateWrapperBuilder(this, validateAndGetClient(), odometerSeed));
+    }
+
+    /** Delete a {@link Odometer} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteOdometer(@NonNull String id) {
+      return RequestFactories.inst.get().odometerDeleteItemBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /**
+     * Get {@link OdometerTrigger.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<OdometerTrigger, OdometerTrigger.TimeSeries>> getOdometerTriggers() {
+      return new ForIdBuilder<>(RequestFactories.inst.get()
+          .odometerTriggersTimeSeriesBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link OdometerTrigger} by id. */
+    @NonNull
+    public WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper> getOdometerTrigger(
+        @NonNull String id) {
+      return RequestFactories.inst.get()
+          .odometerTriggerWrapperBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /** Create a new {@link OdometerTrigger}. Require or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<OdometerTrigger, OdometerTrigger.Wrapper>> createOdometerTrigger(
+        @NonNull OdometerTriggerSeed odometerTriggerSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get().odometerTriggerCreateWrapperBuilder( //
+          this, validateAndGetClient(), odometerTriggerSeed));
+    }
+
+    /** Delete a {@link Odometer} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteOdometerTrigger(@NonNull String id) {
+      return RequestFactories.inst.get()
+          .odometerTriggerDeleteItemBuilder(this, validateAndGetClient()) //
+          .id(id);
+    }
+
+    /**
      * Get {@link Dtc.TimeSeries} for a vehicle. Requires {@link ForId#VEHICLE}. Same as {@link
      * #getDtcsWithState(State)} with a null param.
      *
@@ -538,6 +615,17 @@ public final class VinliRequest {
     }
 
     /**
+     * Get {@link Snapshot.TimeSeries} for a device or vehicle. Requires {@link ForId#DEVICE} or
+     * {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        TimeSeriesBuilder<Snapshot, Snapshot.TimeSeries>> getSnapshots(@NonNull String fields) {
+      return new ForIdBuilder<>(RequestFactories.inst.get()
+          .snapshotsTimeSeriesBuilder(this, validateAndGetClient(), fields)); //
+    }
+
+    /**
      * Get {@link Notification.TimeSeries} for an event or subscription. Requires {@link
      * ForId#EVENT} or {@link ForId#SUBSCRIPTION}.
      */
@@ -554,6 +642,52 @@ public final class VinliRequest {
       return RequestFactories.inst.get()
           .notificationWrapperBuilder(this, validateAndGetClient())
           .id(id);
+    }
+
+    /**
+     * Get {@link Subscription.Page} for a device or vehicle. Requires {@link ForId#DEVICE} or
+     * {@link ForId#VEHICLE}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        PageBuilder<Subscription, Subscription.Page>> getSubscriptions() {
+      return new ForIdBuilder<>(
+          RequestFactories.inst.get().subscriptionPageBuilder(this, validateAndGetClient()));
+    }
+
+    /** Get a single {@link Subscription} by id. */
+    @NonNull
+    public ForIdBuilder<WrapperBuilder<Subscription, Subscription.Wrapper>> getSubscription() {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subscriptionWrapperBuilder(this, validateAndGetClient()));
+    }
+
+    /** Create a new {@link Subscription}. Requires {@link ForId#DEVICE} or {@link ForId#VEHICLE}. */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Subscription, Subscription.Wrapper>> createSubscription(
+        @NonNull SubscriptionSeed subscriptionSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subcriptionCreateWrapperBuilder(this, validateAndGetClient(), subscriptionSeed));
+    }
+
+    /** Delete a {@link Subscription} by id. */
+    @NonNull
+    public ItemBuilder<Void> deleteSubscription(@NonNull String id) {
+      return RequestFactories.inst.get() //
+          .subscriptionDeleteItemBuilder(this, validateAndGetClient()).id(id);
+    }
+
+    /**
+     * Edit an exisiting {@link Rule}. Requires {@link ForId#DEVICE} and {@link
+     * ForId#SUBSCRIPTION}.
+     */
+    @NonNull
+    public ForIdBuilder< //
+        WrapperBuilder<Subscription, Subscription.Wrapper>> createRule(@NonNull String id,
+        @NonNull SubscriptionSeed subscriptionSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .subcriptionEditWrapperBuilder(this, validateAndGetClient(), subscriptionSeed));
     }
 
     /**
@@ -705,6 +839,36 @@ public final class VinliRequest {
       return RequestFactories.inst.get() //
           .ruleDeleteItemBuilder(this, validateAndGetClient()) //
           .id(id);
+    }
+
+    /** Get {@link Dummy.Page} for the given {@link #accessToken(String)}. */
+    @NonNull
+    public PageBuilder<Dummy, Dummy.Page> getDummies() {
+      return RequestFactories.inst.get() //
+          .dummiesPageBuilder(this, validateAndGetClient());
+    }
+
+    /** Get a single {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
+    @NonNull
+    public ForIdBuilder<WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper>> getCurrentRun() {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .runWrapperBuilder(this, validateAndGetClient()));
+    }
+
+    /** Create a new {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
+    @NonNull
+    public  //
+    ForIdBuilder<WrapperBuilder<Dummy.Run, Dummy.Run.Wrapper>> createRun(
+        @NonNull Dummy.RunSeed runSeed) {
+      return new ForIdBuilder<>(RequestFactories.inst.get() //
+          .runCreateWrapperBuilder(this, validateAndGetClient(), runSeed));
+    }
+
+    /** Delete a {@link Dummy.Run}. Requires {@link ForId#DUMMY}. */
+    @NonNull
+    public ItemBuilder<Void> deleteRun(@NonNull String id) {
+      return RequestFactories.inst.get() //
+          .runDeleteItemBuilder(this, validateAndGetClient()).id(id);
     }
   }
 }

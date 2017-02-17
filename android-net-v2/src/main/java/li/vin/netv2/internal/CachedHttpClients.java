@@ -11,6 +11,7 @@ import li.vin.netv2.service.Collisions;
 import li.vin.netv2.service.Devices;
 import li.vin.netv2.service.Diagnostics;
 import li.vin.netv2.service.Distances;
+import li.vin.netv2.service.Dummies;
 import li.vin.netv2.service.Events;
 import li.vin.netv2.service.Generic;
 import li.vin.netv2.service.Locations;
@@ -18,6 +19,8 @@ import li.vin.netv2.service.Messages;
 import li.vin.netv2.service.Notifications;
 import li.vin.netv2.service.ReportCards;
 import li.vin.netv2.service.Rules;
+import li.vin.netv2.service.Snapshots;
+import li.vin.netv2.service.Subscriptions;
 import li.vin.netv2.service.Trips;
 import li.vin.netv2.service.Users;
 import li.vin.netv2.service.Vehicles;
@@ -141,6 +144,7 @@ public class CachedHttpClients {
     final Lazy<Retrofit> authAdapter;
     final Lazy<Retrofit> behavioralAdapter;
     final Lazy<Retrofit> rulesAdapter;
+    final Lazy<Retrofit> dummiesAdapter;
 
     public final Lazy<Devices> devices;
     public final Lazy<Vehicles> vehicles;
@@ -150,11 +154,14 @@ public class CachedHttpClients {
     public final Lazy<Events> events;
     public final Lazy<Locations> locations;
     public final Lazy<Messages> messages;
+    public final Lazy<Snapshots> snapshots;
     public final Lazy<Notifications> notifications;
+    public final Lazy<Subscriptions> subscriptions;
     public final Lazy<Trips> trips;
     public final Lazy<Users> users;
     public final Lazy<ReportCards> reportCards;
     public final Lazy<Rules> rules;
+    public final Lazy<Dummies> dummies;
 
     public final Lazy<Generic> genericAuth;
     public final Lazy<Generic> genericTos;
@@ -171,6 +178,7 @@ public class CachedHttpClients {
       this.authAdapter = lazyAdapter(Endpoint.AUTH);
       this.behavioralAdapter = lazyAdapter(Endpoint.BEHAVIORAL);
       this.rulesAdapter = lazyAdapter(Endpoint.RULES);
+      this.dummiesAdapter = lazyAdapter(Endpoint.DUMMY);
 
       this.devices = lazyService(this.platformAdapter, Devices.class);
       this.vehicles = lazyService(this.platformAdapter, Vehicles.class);
@@ -180,11 +188,15 @@ public class CachedHttpClients {
       this.events = lazyService(this.eventsAdapter, Events.class);
       this.locations = lazyService(this.telemAdapter, Locations.class);
       this.messages = lazyService(this.telemAdapter, Messages.class);
+      this.snapshots = lazyService(this.telemAdapter, Snapshots.class);
       this.notifications = lazyService(this.eventsAdapter, Notifications.class);
+      this.subscriptions = lazyService(this.eventsAdapter, Subscriptions.class);
       this.trips = lazyService(this.tripsAdapter, Trips.class);
       this.users = lazyService(Endpoint.AUTH, Users.class);
       this.reportCards = lazyService(this.behavioralAdapter, ReportCards.class);
       this.rules = lazyService(this.rulesAdapter, Rules.class);
+      this.dummies = lazyService(this.dummiesAdapter, Dummies.class);
+
 
       this.genericAuth = lazyService(Endpoint.AUTH, Generic.class);
       this.genericTos = lazyService(Endpoint.TOS, Generic.class);

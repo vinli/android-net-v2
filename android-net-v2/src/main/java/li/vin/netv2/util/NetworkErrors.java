@@ -1,6 +1,7 @@
 package li.vin.netv2.util;
 
 import android.support.annotation.NonNull;
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.Locale;
 import retrofit2.adapter.rxjava.HttpException;
@@ -35,6 +36,10 @@ public final class NetworkErrors {
         return isSocketTimeout(t);
       }
     };
+  }
+
+  public static boolean isConnectionException(Throwable t) {
+    return t instanceof ConnectException;
   }
 
   public static boolean isCode(Throwable t, int code) {

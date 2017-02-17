@@ -9,6 +9,7 @@ public enum ForId {
 
   DEVICE("deviceId"),
   VEHICLE("vehicleId"),
+  DUMMY("dummyId"),
   EVENT("eventId"),
   SUBSCRIPTION("subscriptionId"),
   TRIP("tripId");
@@ -28,10 +29,11 @@ public enum ForId {
   public static ForId fromString(@NonNull String str) {
     if ("deviceId".equals(str)) return DEVICE;
     if ("vehicleId".equals(str)) return VEHICLE;
+    if ("dummyId".equals(str)) return DUMMY;
     if ("eventId".equals(str)) return EVENT;
     if ("subscriptionId".equals(str)) return SUBSCRIPTION;
     if ("tripId".equals(str)) return TRIP;
     throw new IllegalArgumentException(
-        "must be deviceId, vehicleId, eventId, subscriptionId, tripId.");
+        "must be deviceId, vehicleId, dummyId, eventId, subscriptionId, tripId.");
   }
 }
