@@ -15,7 +15,6 @@ import static li.vin.netv2.model.ModelPkgHooks.maps;
 public class Dummy extends BaseModels.BaseModelId {
 
   Dummy() {
-
   }
 
   String name;
@@ -46,22 +45,22 @@ public class Dummy extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Link<Rule.Wrapper> selfLink() {
+  public Link<Wrapper> selfLink() {
     return Link.create(maps.get().getStr(links, "self"));
   }
 
   @NonNull
-  public Link<Event.TimeSeries> runsLink() {
+  public Link<Run.Wrapper> runsLink() {
     return Link.create(maps.get().getStr(links, "runs"));
   }
 
   @NonNull
-  public Link<Event.TimeSeries> deviceLink() {
+  public Link<Device.Wrapper> deviceLink() {
     return Link.create(maps.get().getStr(links, "device"));
   }
 
   @NonNull
-  public Link<Event.TimeSeries> messagesLink() {
+  public Link<Message.TimeSeries> messagesLink() {
     return Link.create(maps.get().getStr(links, "messages"));
   }
 
@@ -71,8 +70,8 @@ public class Dummy extends BaseModels.BaseModelId {
   }
 
   public static class Wrapper extends BaseModels.BaseModelWrapper<Dummy> {
-    Wrapper() {
 
+    Wrapper() {
     }
 
     Dummy dummy;
@@ -91,8 +90,8 @@ public class Dummy extends BaseModels.BaseModelId {
   }
 
   public static class Page extends BaseModels.BaseModelPage<Dummy> {
-    Page() {
 
+    Page() {
     }
 
     List<Dummy> dummies;
@@ -110,8 +109,8 @@ public class Dummy extends BaseModels.BaseModelId {
   }
 
   public static class Run extends BaseModels.BaseModelId {
-    Run() {
 
+    Run() {
     }
 
     @AllowNull Map status;
@@ -131,8 +130,8 @@ public class Dummy extends BaseModels.BaseModelId {
     }
 
     public static class Wrapper extends BaseModels.BaseModelWrapper<Run> {
-      Wrapper() {
 
+      Wrapper() {
       }
 
       @AllowNull Run run;
@@ -187,8 +186,8 @@ public class Dummy extends BaseModels.BaseModelId {
     }
 
     public static class Wrapper {
-      Wrapper() {
 
+      Wrapper() {
       }
 
       RunSeed run;

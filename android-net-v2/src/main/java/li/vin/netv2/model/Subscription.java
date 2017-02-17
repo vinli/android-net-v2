@@ -11,11 +11,11 @@ import li.vin.netv2.model.misc.StrictValidations.ReqIsoDate;
 import li.vin.netv2.model.misc.StrictValidations.ReqLink;
 
 import static li.vin.netv2.model.ModelPkgHooks.maps;
+import static li.vin.netv2.model.misc.StrictValidations.OptStr;
 
 public class Subscription extends BaseModels.BaseModelId {
 
   Subscription() {
-
   }
 
   @AllowNull String vehicleId;
@@ -25,7 +25,13 @@ public class Subscription extends BaseModels.BaseModelId {
   @AllowNull String appData;
   @ReqIsoDate String createdAt;
   @ReqIsoDate String updatedAt;
-  @AllowNull ObjectRef object;
+
+  @AllowNull //
+  @OptStr({ //
+      "id", //
+      "type" //
+  }) Map object;
+
   @ReqLink({
       "self", //
       "notifications" //
@@ -67,9 +73,15 @@ public class Subscription extends BaseModels.BaseModelId {
   }
 
   @Nullable
-  public ObjectRef objectRef() {
-    return object;
+  public String objectId() {
+    return maps.get().getStrNullable(object, "id");
   }
+
+  @Nullable
+  public String objectType() {
+    return maps.get().getStrNullable(object, "type");
+  }
+
 
   @NonNull
   public Link<Wrapper> selfLink() {
@@ -77,31 +89,14 @@ public class Subscription extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Link<Wrapper> vehicleLink() {
+  public Link<Notification.TimeSeries> notificationsLink() {
     return Link.create(maps.get().getStr(links, "notifications"));
   }
 
-  public static class ObjectRef extends BaseModels.BaseModelId {
-
-    ObjectRef() {
-    }
-
-    String type;
-
-    public String type() {
-      return type;
-    }
-
-    public static Type listType() {
-      return new TypeToken<List<User.Settings>>() {
-      }.getType();
-    }
-  }
 
   public static class Wrapper extends BaseModels.BaseModelWrapper<Subscription> {
 
     Wrapper() {
-
     }
 
     Subscription subscription;

@@ -17,30 +17,37 @@ public interface Dummies {
   @GET("dummies")
   Observable<Dummy.Page> dummies( //
       @Nullable @Query("limit") Integer limit, //
-      @Nullable @Query("offset") Integer offset); //
+      @Nullable @Query("offset") Integer offset //
+  );
 
   @POST("dummies/{dummyId}/runs")
   Observable<Dummy.Run.Wrapper> create( //
       @NonNull @Path("dummyId") String dummyId, //
-      @NonNull @Body Dummy.RunSeed.Wrapper runSeed); //
+      @NonNull @Body Dummy.RunSeed.Wrapper runSeed //
+  );
 
   @GET("dummies/{dummyId}/runs/_current")
   Observable<Dummy.Run.Wrapper> currentRun( //
-      @NonNull @Path("dummyId") String dummyId); //
+      @NonNull @Path("dummyId") String dummyId //
+  );
 
   @GET("dummies/{dummyId}")
   Observable<Dummy.Wrapper> trip( //
-      @NonNull @Path("dummyId") String dummyId); //
+      @NonNull @Path("dummyId") String dummyId //
+  );
 
   @DELETE("dummies/{dummyId}/runs/_current")
   Observable<Void> deleteRun( //
-      @NonNull @Path("dummyId") String dummyId); //
+      @NonNull @Path("dummyId") String dummyId //
+  );
 
   @GET
   Observable<Dummy.Page> dummiesForUrl( //
-      @NonNull @Url String url); //
+      @NonNull @Url String url //
+  );
 
   @GET
   Observable<Dummy.Run.Wrapper> runForUrl( //
-      @NonNull @Url String url); //
+      @NonNull @Url String url //
+  );
 }

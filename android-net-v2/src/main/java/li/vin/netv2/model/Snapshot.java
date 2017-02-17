@@ -11,8 +11,8 @@ import li.vin.netv2.model.misc.StrictValidations.ReqLink;
 import static li.vin.netv2.model.ModelPkgHooks.maps;
 
 public class Snapshot extends BaseModels.BaseModelId {
-  Snapshot() {
 
+  Snapshot() {
   }
 
   @ReqIsoDate String timestamp;
@@ -39,7 +39,6 @@ public class Snapshot extends BaseModels.BaseModelId {
   public static class TimeSeries extends BaseModels.BaseModelTimeSeries<Snapshot> {
 
     TimeSeries() {
-
     }
 
     List<Snapshot> snapshots;
@@ -59,7 +58,6 @@ public class Snapshot extends BaseModels.BaseModelId {
   public static class Wrapper extends BaseModels.BaseModelWrapper<Snapshot> {
 
     Wrapper() {
-
     }
 
     Snapshot snapshot;

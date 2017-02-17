@@ -12,13 +12,13 @@ import static li.vin.netv2.model.misc.StrictValidations.ReqLink;
 public class OdometerTrigger extends BaseModels.BaseModelId {
 
   OdometerTrigger() {
-
   }
 
   public enum TriggerType {
     SPECIFIC("specific"), //
     FROM_NOW("from_now"), //
-    MILESTONE("milestone");
+    MILESTONE("milestone"), //
+    UNKNOWN("unknown");
 
     @NonNull private final String str;
 
@@ -36,7 +36,7 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
       if ("specific".equals(str)) return SPECIFIC;
       if ("from_now".equals(str)) return FROM_NOW;
       if ("milestone".equals(str)) return MILESTONE;
-      throw new IllegalArgumentException("str is not a valid string to be used for TriggerType");
+      return UNKNOWN;
     }
   }
 
@@ -87,8 +87,8 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
   }
 
   public static class TimeSeries extends BaseModels.BaseModelTimeSeries<OdometerTrigger> {
-    TimeSeries() {
 
+    TimeSeries() {
     }
 
     List<OdometerTrigger> odometerTriggers;
@@ -108,7 +108,6 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
   public static class Wrapper extends BaseModels.BaseModelWrapper<OdometerTrigger> {
 
     Wrapper() {
-
     }
 
     OdometerTrigger odometerTrigger;

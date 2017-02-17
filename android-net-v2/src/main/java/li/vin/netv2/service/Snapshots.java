@@ -18,7 +18,8 @@ public interface Snapshots {
       @Nullable @Query("since") Long since, //
       @Nullable @Query("until") Long until, //
       @Nullable @Query("limit") Integer limit, //
-      @Nullable @Query("sortDir") String sortDir); //
+      @Nullable @Query("sortDir") String sortDir //
+  );
 
   @GET("vehicles/{vehicleId}/snapshots")
   Observable<Snapshot.TimeSeries> vehicleSnapshots( //
@@ -27,9 +28,11 @@ public interface Snapshots {
       @Nullable @Query("since") Long since, //
       @Nullable @Query("until") Long until, //
       @Nullable @Query("limit") Integer limit, //
-      @Nullable @Query("sortDir") String sortDir); //
+      @Nullable @Query("sortDir") String sortDir //
+  );
 
   @GET
   Observable<Snapshot.TimeSeries> snapshotsForUrl( //
-      @NonNull @Url String url); //
+      @NonNull @Url String url //
+  );
 }

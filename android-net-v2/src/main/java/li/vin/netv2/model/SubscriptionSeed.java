@@ -6,8 +6,8 @@ import li.vin.netv2.request.RequestPkgHooks;
 
 public class SubscriptionSeed extends BaseModels.BaseModel implements ModelSeed {
 
-  public SubscriptionSeed(final String eventType, final String appData, final String url, final
-     ObjectRefSeed object) {
+  public SubscriptionSeed(final String eventType, final String appData, final String url,
+      final ObjectRefSeed object) {
     this.eventType = eventType;
     this.appData = appData;
     this.url = url;
@@ -79,8 +79,8 @@ public class SubscriptionSeed extends BaseModels.BaseModel implements ModelSeed 
   }
 
   public static class Wrapper {
-    Wrapper() {
 
+    Wrapper() {
     }
 
     SubscriptionSeed subscription;

@@ -53,7 +53,6 @@ import li.vin.netv2.util.VinliRx;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -599,7 +598,8 @@ public class AllTests {
     };
   }
 
-  private static Action1<Odometer> checkOdometerAction(@NonNull final Builder b, final boolean followLinks) {
+  private static Action1<Odometer> checkOdometerAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<Odometer>() {
       @Override
       public void call(Odometer odometer) {
@@ -612,7 +612,8 @@ public class AllTests {
     };
   }
 
-  private static Action1<OdometerTrigger> checkOdometerTriggerAction(@NonNull final Builder b, final boolean followLinks) {
+  private static Action1<OdometerTrigger> checkOdometerTriggerAction(@NonNull final Builder b,
+      final boolean followLinks) {
     return new Action1<OdometerTrigger>() {
       @Override
       public void call(OdometerTrigger odometerTrigger) {
@@ -1381,7 +1382,7 @@ public class AllTests {
   //
   //  baseBuilder() //
   //      .logLevel(HttpLoggingInterceptor.Level.BODY) //
-  //      .accessToken("ZEfTFVOoTCHZWmMhR9IOjl3NbA0c7umaIXhbVELXF9EG3_v0S_cToLQwr8oea26c") //
+  //      .accessToken(tokens.get(2) //
   //      .createRule(RuleSeed.create() //
   //          .name("testrule") //
   //          //.boundary(ParametricBoundary.create() //
@@ -1505,9 +1506,7 @@ public class AllTests {
 
   @Test
   public void testCreateOdometers() {
-    baseBuilder("dev") //
-        .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken(tokens.get(0))
+    builder.accessToken(tokens.get(0))
         .createOdometer(OdometerSeed.create().reading(12345.0).unit(Unit.MILES.toString()))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
         .build()
@@ -1557,9 +1556,7 @@ public class AllTests {
 
   @Test
   public void testCreateOdometerTrigger() {
-    baseBuilder("dev") //
-        .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken(tokens.get(0))
+    builder.accessToken(tokens.get(0))
         .createOdometerTrigger(OdometerTriggerSeed.create()
             .threshold(20000.0)
             .unit(Unit.MILES)
@@ -1589,11 +1586,11 @@ public class AllTests {
       public Observable<?> call(DeviceBuilderPair pair) {
         Observable<Snapshot.TimeSeries> o1 = pair.second.getSnapshots("rpm")
             .forId(DEVICE, pair.first.id())
-            .limit(1)
+            .limit(5)
             .build()
             .observeAll()
-            .take(1);
-        return o1.doOnNext(checkTmSerAction(1, DESCENDING))
+            .take(5);
+        return o1.doOnNext(checkTmSerAction(5, DESCENDING))
             .flatMap(VinliRx.<Snapshot>flattenTimeSeries())
             .doOnNext(checkSnapshotAction(pair.second, true));
       }
@@ -1625,11 +1622,11 @@ public class AllTests {
       public Observable<?> call(DeviceBuilderPair pair) {
         Observable<Subscription.Page> o1 = pair.second.getSubscriptions()
             .forId(DEVICE, pair.first.id())
-            .limit(1)
+            .limit(5)
             .build()
             .observeAll()
-            .take(1);
-        return o1.doOnNext(checkPageAction(1, 0))
+            .take(5);
+        return o1.doOnNext(checkPageAction(5, 0))
             .flatMap(VinliRx.<Subscription>flattenPage())
             .doOnNext(checkSubscriptionAction(pair.second, true));
       }
@@ -1668,9 +1665,7 @@ public class AllTests {
 
   @Test
   public void testCreateSubscription() {
-    baseBuilder("dev") //
-        .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken(tokens.get(0))
+    builder.accessToken(tokens.get(0))
         .createSubscription(
             SubscriptionSeed.create().eventType("dtc-on").url("https://fakeurl.com/notifs"))
         .forId(VEHICLE, "78659a96-3b9f-4279-9c88-f965b8faa999")
@@ -1692,9 +1687,7 @@ public class AllTests {
 
   @Test
   public void testCreateSubscriptionRule() {
-    baseBuilder("dev") //
-        .logLevel(HttpLoggingInterceptor.Level.BODY) //
-        .accessToken(tokens.get(0))
+    builder.accessToken(tokens.get(0))
         .createSubscription(SubscriptionSeed.create()
             .eventType("dtc-on")
             .url("https://fakeurl.com/notifs")

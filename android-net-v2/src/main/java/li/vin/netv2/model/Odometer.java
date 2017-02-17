@@ -5,8 +5,6 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import li.vin.netv2.model.misc.StrictValidations.AllowNull;
-import li.vin.netv2.model.misc.StrictValidations.OptIsoDate;
 import li.vin.netv2.model.misc.StrictValidations.ReqIsoDate;
 import li.vin.netv2.model.misc.StrictValidations.ReqLink;
 
@@ -15,18 +13,12 @@ import static li.vin.netv2.model.ModelPkgHooks.maps;
 public class Odometer extends BaseModels.BaseModelId {
 
   Odometer() {
-
   }
 
   Double reading;
   String vehicleId;
   String unit;
   @ReqIsoDate String date;
-
-  @AllowNull //
-  @OptIsoDate({ //
-      "date" //
-  }) //
 
   @ReqLink({
       "self", //
@@ -59,13 +51,13 @@ public class Odometer extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Link<Wrapper> vehicleLink() {
+  public Link<Vehicle.Wrapper> vehicleLink() {
     return Link.create(maps.get().getStr(links, "vehicle"));
   }
 
   public static class TimeSeries extends BaseModels.BaseModelTimeSeries<Odometer> {
-    TimeSeries() {
 
+    TimeSeries() {
     }
 
     List<Odometer> odometers;
@@ -85,7 +77,6 @@ public class Odometer extends BaseModels.BaseModelId {
   public static class Wrapper extends BaseModels.BaseModelWrapper<Odometer> {
 
     Wrapper() {
-
     }
 
     Odometer odometer;

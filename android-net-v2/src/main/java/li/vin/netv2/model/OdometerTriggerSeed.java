@@ -41,8 +41,8 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
   }
 
   public static class Wrapper {
-    Wrapper() {
 
+    Wrapper() {
     }
 
     OdometerTriggerSeed odometerTrigger;
