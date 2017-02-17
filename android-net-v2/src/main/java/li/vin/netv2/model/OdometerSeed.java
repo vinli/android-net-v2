@@ -8,20 +8,20 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
 
   @NonNull
   public static OdometerSeed create() {
-    return new OdometerSeed(null, null, null);
+    return new OdometerSeed(Double.MAX_VALUE, null, null);
   }
 
-  OdometerSeed(final Double reading, final String timestamp, final String unit) {
+  OdometerSeed(final double reading, final String timestamp, final String unit) {
     this.reading = reading;
     this.timestamp = timestamp;
     this.unit = unit;
   }
 
-  final Double reading;
+  final double reading;
   final String timestamp;
   final String unit;
 
-  public OdometerSeed reading(@NonNull Double reading) {
+  public OdometerSeed reading(@NonNull double reading) {
     return new OdometerSeed(reading, timestamp, unit);
   }
 
@@ -35,7 +35,7 @@ public class OdometerSeed extends BaseModels.BaseModel implements ModelSeed {
 
   @Override
   public void validate() {
-    if (reading == null) throw new IllegalArgumentException("reading required");
+    if (reading == Double.MAX_VALUE) throw new IllegalArgumentException("reading required");
     if (unit == null) throw new IllegalArgumentException("unit required");
   }
 

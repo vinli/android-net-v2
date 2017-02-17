@@ -41,8 +41,8 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
   }
 
   String vehicleId;
-  Double threshold;
-  Double events;
+  double threshold;
+  double events;
   String type;
   String unit;
 
@@ -57,12 +57,12 @@ public class OdometerTrigger extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Double threshhold() {
+  public double threshhold() {
     return threshold;
   }
 
   @NonNull
-  public Double events() {
+  public double events() {
     return events;
   }
 

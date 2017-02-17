@@ -15,7 +15,7 @@ public class Odometer extends BaseModels.BaseModelId {
   Odometer() {
   }
 
-  Double reading;
+  double reading;
   String vehicleId;
   String unit;
   @ReqIsoDate String date;
@@ -31,7 +31,7 @@ public class Odometer extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Double reading() {
+  public double reading() {
     return reading;
   }
 

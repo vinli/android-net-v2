@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import li.vin.netv2.error.NoResourceExistsException;
 import li.vin.netv2.model.contract.ModelSeed;
 import li.vin.netv2.model.misc.StrictValidations.AllowNull;
 import li.vin.netv2.model.misc.StrictValidations.ReqLink;
@@ -50,7 +51,7 @@ public class Dummy extends BaseModels.BaseModelId {
   }
 
   @NonNull
-  public Link<Run.Wrapper> runsLink() {
+  public Link<Run.Wrapper> runLink() {
     return Link.create(maps.get().getStr(links, "runs"));
   }
 
@@ -113,6 +114,13 @@ public class Dummy extends BaseModels.BaseModelId {
     Run() {
     }
 
+    public static class NoRunException extends NoResourceExistsException {
+
+      public NoRunException() {
+        super("No run available for the given resource.");
+      }
+    }
+
     @AllowNull Map status;
 
     @ReqLink({ //
@@ -139,6 +147,7 @@ public class Dummy extends BaseModels.BaseModelId {
       @NonNull
       @Override
       public Run extract() {
+        if (run == null) throw new NoRunException();
         return run;
       }
 

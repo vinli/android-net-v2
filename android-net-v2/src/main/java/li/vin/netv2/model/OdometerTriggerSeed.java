@@ -8,24 +8,24 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
 
   @NonNull
   public static OdometerTriggerSeed create() {
-    return new OdometerTriggerSeed(null, null, null);
+    return new OdometerTriggerSeed(null, Double.MAX_VALUE, null);
   }
 
-  OdometerTriggerSeed(final String type, final Double threshold, final String unit) {
+  OdometerTriggerSeed(final String type, final double threshold, final String unit) {
     this.type = type;
     this.threshold = threshold;
     this.unit = unit;
   }
 
   final String type;
-  final Double threshold;
+  final double threshold;
   final String unit;
 
   public OdometerTriggerSeed type(@NonNull OdometerTrigger.TriggerType type) {
     return new OdometerTriggerSeed(type.toString(), threshold, unit);
   }
 
-  public OdometerTriggerSeed threshold(@NonNull Double threshold) {
+  public OdometerTriggerSeed threshold(@NonNull double threshold) {
     return new OdometerTriggerSeed(type, threshold, unit);
   }
 
@@ -37,7 +37,7 @@ public class OdometerTriggerSeed extends BaseModels.BaseModel implements ModelSe
   public void validate() {
     if (type == null) throw new IllegalArgumentException("type required");
     if (unit == null) throw new IllegalArgumentException("unit required");
-    if (threshold == null) throw new IllegalArgumentException("threshold required");
+    if (threshold == Double.MAX_VALUE) throw new IllegalArgumentException("threshold required");
   }
 
   public static class Wrapper {

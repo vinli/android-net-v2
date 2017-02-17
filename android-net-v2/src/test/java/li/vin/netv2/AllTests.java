@@ -1726,26 +1726,28 @@ public class AllTests {
 
   @Test
   public void testCreateRun() {
-    final Builder b = builder.copy().accessToken(tokens.get(0));
-
-    b.getCurrentRun()
-        .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
-        .build()
-        .observeExtracted()
-        .flatMap(new Func1<Dummy.Run, Observable<?>>() {
-          @Override
-          public Observable<?> call(Dummy.Run run) {
-            if (run != null) {
-              return b.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
-                  .build()
-                  .observe()
-                  .doOnNext(simplePrintAction(System.err, "... Run deleted!"));
+    final Builder b = builder.copy() //
+        .accessToken(tokens.get(0)) //
+        .missingResourcesAsNull(true);
+    try {
+      b.getCurrentRun().forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294") //
+          .build() //
+          .observeExtracted() //
+          .flatMap(new Func1<Dummy.Run, Observable<?>>() {
+            @Override
+            public Observable<?> call(Dummy.Run run) {
+              if (run != null) {
+                return b.deleteRun("cde207e2-540f-4851-ac55-15b08c07e294")
+                    .build()
+                    .observe()
+                    .doOnNext(simplePrintAction(System.err, "... Run deleted!"));
+              }
+              return null;
             }
-            return null;
-          }
-        })
-        .toBlocking()
-        .subscribe(testSub());
+          }).toBlocking().subscribe(testSub());
+    } catch (Exception e) {
+      //oh well
+    }
 
     b.createRun(Dummy.RunSeed.create()
         .vin("VVV12912912913456")
@@ -1770,7 +1772,10 @@ public class AllTests {
 
   @Test
   public void testGetCurrentRun() {
-    final Builder b = builder.copy().accessToken(tokens.get(0));
+    final Builder b = builder.copy() //
+        .accessToken(tokens.get(0)) //
+        .missingResourcesAsNull(true);
+
     b.getCurrentRun()
         .forId(DUMMY, "cde207e2-540f-4851-ac55-15b08c07e294")
         .build()
