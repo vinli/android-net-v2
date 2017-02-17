@@ -151,7 +151,7 @@ public class Dummy extends BaseModels.BaseModelId {
 
     @NonNull
     public static Type listType() {
-      return new TypeToken<List<Dummy>>() {
+      return new TypeToken<List<Run>>() {
       }.getType();
     }
   }

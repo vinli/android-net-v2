@@ -96,7 +96,7 @@ public class Odometer extends BaseModels.BaseModelId {
 
   @NonNull
   public static Type listType() {
-    return new TypeToken<List<Wrapper>>() {
+    return new TypeToken<List<Odometer>>() {
     }.getType();
   }
 }

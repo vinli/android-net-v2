@@ -109,7 +109,7 @@ public class Subscription extends BaseModels.BaseModelId {
 
     @NonNull
     public static Type listType() {
-      return new TypeToken<List<User.Settings>>() {
+      return new TypeToken<List<Wrapper>>() {
       }.getType();
     }
   }
@@ -128,8 +128,13 @@ public class Subscription extends BaseModels.BaseModelId {
 
     @NonNull
     public static Type listType() {
-      return new TypeToken<List<Subscription.Page>>() {
+      return new TypeToken<List<Page>>() {
       }.getType();
     }
+  }
+  @NonNull
+  public static Type listType() {
+    return new TypeToken<List<Subscription>>() {
+    }.getType();
   }
 }
