@@ -93,7 +93,6 @@ public class Subscription extends BaseModels.BaseModelId {
     return Link.create(maps.get().getStr(links, "notifications"));
   }
 
-
   public static class Wrapper extends BaseModels.BaseModelWrapper<Subscription> {
 
     Wrapper() {
