@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import li.vin.netv2.BuildConfig;
 import li.vin.netv2.error.NoResourceExistsException;
 import li.vin.netv2.model.BatteryStatus;
 import li.vin.netv2.model.Collision;
@@ -103,7 +104,7 @@ public final class VinliRequest {
     @NonNull TimeUnit connectTimeoutUnit = SECONDS;
     long overallTimeoutAmount = 120;
     @NonNull TimeUnit overallTimeoutUnit = SECONDS;
-    @Nullable String env;
+    @Nullable String env = BuildConfig.VINLI_ENV;
     @Nullable OkHttpClient.Builder clientBuilder;
 
     // getters

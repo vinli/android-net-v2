@@ -41,6 +41,7 @@ android {
       buildConfigField("Integer", "MAX_DISK_CACHE_PRUNES_PER_PASS", "64")
       buildConfigField("Integer", "MAX_DISK_CACHE_LOCK_MAP_SIZE", "64")
       buildConfigField("String", "DISK_CACHE_FILENAME_FORMAT", "\"CACHE_%s\"")
+      buildConfigField("String", "VINLI_ENV", "\"dev\"")
     }
 
     debug {
