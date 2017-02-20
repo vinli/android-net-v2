@@ -967,6 +967,19 @@ class RequestFactories {
     }, EnumSet.noneOf(ForId.class));
   }
 
+  public ItemBuilder<ResponseBody> createActivationItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client,
+      @NonNull final String caseId, @NonNull final String wrappedActivationPinJson) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<ResponseBody>() {
+      @NonNull
+      @Override
+      public Observable<ResponseBody> call(@NonNull ItemBuilder<ResponseBody> builder) {
+        return client.genericAuth.get().genericPost(format("cases/%s/activations", caseId), //
+            RequestBody.create(MediaType.parse("application/json"), wrappedActivationPinJson));
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
   // observable factory interfaces
 
   interface TimeSeriesObservableFactory<T extends StrictModel, MT extends ModelTimeSeries<T>> {
