@@ -955,6 +955,18 @@ class RequestFactories {
     }, EnumSet.noneOf(ForId.class));
   }
 
+  public ItemBuilder<ResponseBody> getCaseIdClaimedItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client,
+      @NonNull final String caseId) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<ResponseBody>() {
+      @NonNull
+      @Override
+      public Observable<ResponseBody> call(@NonNull ItemBuilder<ResponseBody> builder) {
+        return client.genericAuth.get().genericGet(format("cases/%s/claimed", caseId));
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
   // observable factory interfaces
 
   interface TimeSeriesObservableFactory<T extends StrictModel, MT extends ModelTimeSeries<T>> {
