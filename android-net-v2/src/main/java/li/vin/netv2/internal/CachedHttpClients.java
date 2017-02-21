@@ -165,6 +165,7 @@ public class CachedHttpClients {
 
     public final Lazy<Generic> genericAuth;
     public final Lazy<Generic> genericTos;
+    public final Lazy<Generic> genericMyVinli;
 
     ClientAndServices(@NonNull OkHttpClient client, @Nullable String env) {
       this.client = client;
@@ -197,9 +198,9 @@ public class CachedHttpClients {
       this.rules = lazyService(this.rulesAdapter, Rules.class);
       this.dummies = lazyService(this.dummiesAdapter, Dummies.class);
 
-
       this.genericAuth = lazyService(Endpoint.AUTH, Generic.class);
       this.genericTos = lazyService(Endpoint.TOS, Generic.class);
+      this.genericMyVinli = lazyService(Endpoint.MY_VINLI, Generic.class);
     }
 
     Lazy<Retrofit> lazyAdapter(final Endpoint endpoint) {

@@ -19,7 +19,8 @@ enum Endpoint {
   BEHAVIORAL("behavioral"),
   DISTANCE("distance"),
   DUMMY("dummies"),
-  TOS("tos");
+  TOS("tos"),
+  MY_VINLI("my-vinli");
 
   final String subDomain;
   final HttpUrl url;

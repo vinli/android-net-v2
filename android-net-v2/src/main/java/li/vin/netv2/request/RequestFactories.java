@@ -980,6 +980,18 @@ class RequestFactories {
     }, EnumSet.noneOf(ForId.class));
   }
 
+  public ItemBuilder<ResponseBody> getExternalLinkItemBuilder( //
+      @NonNull Builder builder, @NonNull final ClientAndServices client, //
+      @NonNull final String type, @NonNull final String target) {
+    return new ItemBuilder<>(builder, new ItemObservableFactory<ResponseBody>() {
+      @NonNull
+      @Override
+      public Observable<ResponseBody> call(@NonNull ItemBuilder<ResponseBody> builder) {
+        return client.genericMyVinli.get().genericGet(format("externalLinks/%s/%s", type, target));
+      }
+    }, EnumSet.noneOf(ForId.class));
+  }
+
   // observable factory interfaces
 
   interface TimeSeriesObservableFactory<T extends StrictModel, MT extends ModelTimeSeries<T>> {
