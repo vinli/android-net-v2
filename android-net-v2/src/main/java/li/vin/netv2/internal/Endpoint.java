@@ -4,6 +4,7 @@ import android.support.annotation.Nullable;
 import java.util.Locale;
 import okhttp3.HttpUrl;
 
+import static android.text.TextUtils.getTrimmedLength;
 import static java.lang.String.format;
 
 enum Endpoint {
@@ -36,7 +37,7 @@ enum Endpoint {
   }
 
   String getUrl(@Nullable String env) {
-    if (env == null) {
+    if (env == null || getTrimmedLength(env) == 0) {
       env = "";
     } else if (!env.startsWith("-")) {
       env = format(Locale.US, "-%s", env);
